@@ -1,6 +1,6 @@
 const request = require("request-promise");
 const MongoClient = require('mongodb').MongoClient;
-const url = `mongodb://${process.env.mongo_username}:${process.env.mongo_password}@{process.env.mongo_uri}/${mongo_database}`;
+const url = `mongodb://${process.env.mongo_username}:${process.env.mongo_password}@{process.env.mongo_uri}/${process.env.mongo_database}`;
 const cheerio = require("cheerio");
 
 const Discord = require("discord.js");
