@@ -1,16 +1,6 @@
-//////////////////////////////////////////
-// SETTINGS - CHANGE THESE ACCORDINGLY
-const mongo_username = "metalforce";
-const mongo_password = "metalforce";
-const mongo_database = "warmaneDB";
-const discord_bot_id0 = "MTA0ODkwNjE4MzAzNTA2NDM5MA.";
-const discord_bot_id1 = "Gwf0zm.";
-const discord_bot_id2 = "ISdTKDuSxhmOGiPsJM5jxHTtdx3noSQ_QyC6PM";
-//////////////////////////////////////////
-
 const request = require("request-promise");
 const MongoClient = require('mongodb').MongoClient;
-const url = `mongodb://${mongo_username}:${mongo_password}@localhost:27017/${mongo_database}`;
+const url = `mongodb://${process.env.mongo_username}:${process.env.mongo_password}@{process.env.mongo_uri}/${mongo_database}`;
 const cheerio = require("cheerio");
 
 const Discord = require("discord.js");
@@ -317,4 +307,4 @@ function getName(name) {
 }
 
 //Release
-client.login(discord_bot_id0+discord_bot_id1+discord_bot_id2);
+client.login(process.env.discord_bot_id);
