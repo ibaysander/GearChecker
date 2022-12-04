@@ -3,7 +3,7 @@
 const mongo_username = "metalforce";
 const mongo_password = "metalforce";
 const mongo_database = "warmaneDB";
-const discord_bot_id = "MTA0ODkwNjE4MzAzNTA2NDM5MA.Gwf0zm.ISdTKDuSxhmOGiPsJM5jxHTtdx3noSQ_QyC6PM";
+const discord_bot_id = "1048906183035064390";
 //////////////////////////////////////////
 
 const request = require("request-promise");
