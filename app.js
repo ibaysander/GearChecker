@@ -135,8 +135,9 @@ function getGearScore(name) {
                         });
                     });
 
-                    db.collection("items").find({ $or: itemsToFind }).toArray((err, items) => {
+                    db.db(process.env.mongo_database).collection("items").find({ $or: itemsToFind }).toArray((err, items) => {
                         let weapons = [];
+
                         items.forEach(item => {
                             if (item.class === 2 && (item.subclass === 1 || item.subclass === 5 || item.subclass === 8)) {
                                 weapons.push(item.GearScore);
@@ -144,6 +145,7 @@ function getGearScore(name) {
                                 gearscore += item.GearScore;
                             }
                         });
+
                         // Probably a warrior with Titan's Grip
                         if (weapons.length == 2) {
                             gearscore += Math.floor(((weapons[0] + weapons[1]) / 2));
@@ -212,7 +214,7 @@ function getGems(name) {
 
             MongoClient.connect(url, (err, db) => {
                 if (err) { console.log(err); }
-                db.collection("items").find({ $or: itemIDs }).toArray((err, items) => {
+                db.db(process.env.mongo_database).collection("items").find({ $or: itemIDs }).toArray((err, items) => {
                     items.forEach(item => {
                         var foundItem = actualItems.filter(x => x.itemID == item.itemID)[0];
                         if (foundItem.type == "Belt") {
@@ -305,8 +307,6 @@ function getArmory(name) {
 function getName(name) {
     return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 }
-
-console.log(url);
 
 //Release
 client.login(process.env.discord_bot_id);
