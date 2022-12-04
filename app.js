@@ -1,9 +1,9 @@
 //////////////////////////////////////////
 // SETTINGS - CHANGE THESE ACCORDINGLY
-const mongo_username = "ENTER_MONGODB_USERNAME_HERE";
-const mongo_password = "ENTER_MONGODB_PASSWORD_HERE";
-const mongo_database = "ENTER_MONGODB_DATABASE_HERE";
-const discord_bot_id = "ENTER_DISCORD_BOT_ID_HERE";
+const mongo_username = "metalforce";
+const mongo_password = "metalforce";
+const mongo_database = "warmaneDB";
+const discord_bot_id = "MTA0ODkwNjE4MzAzNTA2NDM5MA.Gwf0zm.ISdTKDuSxhmOGiPsJM5jxHTtdx3noSQ_QyC6PM";
 //////////////////////////////////////////
 
 const request = require("request-promise");
