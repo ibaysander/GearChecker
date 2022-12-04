@@ -1,6 +1,6 @@
 const request = require("request-promise");
 const MongoClient = require('mongodb').MongoClient;
-const url = `mongodb+srv://${process.env.mongo_username}:${process.env.mongo_password}@{process.env.mongo_uri}/${process.env.mongo_database}`;
+const url = `mongodb+srv://${process.env.mongo_username}:${process.env.mongo_password}@${process.env.mongo_uri}/${process.env.mongo_database}`;
 const cheerio = require("cheerio");
 
 const Discord = require("discord.js");
@@ -305,6 +305,8 @@ function getArmory(name) {
 function getName(name) {
     return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 }
+
+console.log(url);
 
 //Release
 client.login(process.env.discord_bot_id);
