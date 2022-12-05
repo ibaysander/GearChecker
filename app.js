@@ -20,40 +20,64 @@ client.on("guildCreate", (guild) => {
 });
 
 client.on('message', msg => {
+
     chatMsg = msg;
     if (chatMsg.content[0] === "!") {
+        console.log("[" + new Date().toLocaleString() + "]:> " + msg.content);
         let command = chatMsg.content.split(" ")[0].substring(1);
         let name = chatMsg.content.split(" ")[1];
+        let realm = chatMsg.content.split(" ")[2] == null ? "Icecrown" : chatMsg.content.split(" ")[2];
 
         const commands = {
+            "help": () => {
+                chatMsg.channel.send(`
+**Info**:
+            **Hello! I'm Snuske's child! I now officially support Lordaeron and other WotLK Warmane realms! 
+            The usage is the same as before but you can add the realm after your character's name. 
+            But if you don't I'll search in Icecrown as a default realm.**                
+                
+**Supported commands**:
+            **!help**: Displays this help text.
+            **!guild**: Displays the gild of the player.
+            **!gs**: Displays the GearScore of the player. 
+            **!ench**: Displays which enchants are missing from the player's currently equipped items.
+            **!gems**: Displays which gems are missing from the player's currently equipped items.
+            **!armory**: Returns a link to the player's armory.
+            **!summary**: Lists all the details regarding the given player.
+            
+**Example of usage**:
+            !summary Metalforce Icecrown
+            !summary Koch Lordaeron
+                 `)
+            },
             "guild": () => {
-                getGuild(name, chatMsg);
+                getGuild(realm, name, chatMsg);
             },
             "gs": () => {
-                getGearScore(name).then(character => {
+                getGearScore(realm, name).then(character => {
                     chatMsg.channel.send(`${getName(name)}'s GearScore is ${character.GearScore}`);
                 })
             },
             "ench": () => {
-                getEnchants(name).then(message => {
+                getEnchants(realm, name).then(message => {
                     chatMsg.channel.send(message);
                 })
             },
             "gems": () => {
-                getGems(name).then(message => {
+                getGems(realm, name).then(message => {
                     chatMsg.channel.send(message);
                 })
             },
             "armory": () => {
-                getArmory(name).then(message => {
+                getArmory(realm, name).then(message => {
                     chatMsg.channel.send(message);
                 })
             },
             "summary": () => {
-                getGearScore(name).then(character => {
-                    getEnchants(name).then(enchants => {
-                        getGems(name).then(gems => {
-                            getArmory(name).then(armory => {
+                getGearScore(realm, name).then(character => {
+                    getEnchants(realm, name).then(enchants => {
+                        getGems(realm, name).then(gems => {
+                            getArmory(realm, name).then(armory => {
                                 chatMsg.channel.send(`
     Here is a summary for **${getName(name)}**:
     **Status**: ${character.online ? "Online" : "Offline"}
@@ -85,8 +109,8 @@ client.on('message', msg => {
 });
 
 class Character {
-    constructor(charName) {
-        this.request = request(`http://armory.warmane.com/api/character/${getName(charName)}/Icecrown/`, (err, response, body) => {
+    constructor(realm, charName) {
+        this.request = request(`http://armory.warmane.com/api/character/${getName(charName)}/${realm}/`, (err, response, body) => {
             body = JSON.parse(body);
             this.name = body.name;
             this.realm = body.realm;
@@ -106,8 +130,8 @@ class Character {
     }
 }
 
-function getGuild(name, chatMsg) {
-    var character = new Character(name);
+function getGuild(realm, name, chatMsg) {
+    var character = new Character(realm, name);
     character.request.then(_ => {
         let guild = character.guild
         if (guild === "") {
@@ -120,14 +144,17 @@ function getGuild(name, chatMsg) {
     });
 }
 
-function getGearScore(name) {
-    var character = new Character(name);
+function getGearScore(realm, name) {
+    var character = new Character(realm, name);
     var gearscore = 0;
+
     return new Promise((resolve, reject) => {
         character.request.then(_ => {
             MongoClient.connect(url, (err, db) => {
                 if (err) { console.log(err); }
+
                 var itemsToFind = [];
+
                 if (character.equipment) {
                     character.equipment.forEach(item => {
                         itemsToFind.push({
@@ -174,11 +201,11 @@ function getParams(params) {
     return paramsMap;
 };
 
-function getGems(name) {
+function getGems(realm, name) {
     const itemNames = ["Head", "Neck", "Shoulders", "Cloak", "Chest", "Shirt", "Tabard", "Bracer", "Gloves", "Belt", "Legs", "Boots", "Ring #1", "Ring #2", "Trinket #1", "Trinket #2", "Main-hand", "Off-hand", "Ranged"];
     let missingGems = [];
     const options = {
-        uri: `http://armory.warmane.com/character/${getName(name)}/Icecrown/`,
+        uri: `http://armory.warmane.com/character/${getName(name)}/${realm}/`,
         transform: function (body) {
             return cheerio.load(body);
         }
@@ -240,13 +267,13 @@ function getGems(name) {
     });
 }
 
-function getEnchants(name) {
+function getEnchants(realm, name) {
     const itemNames = ["Head", "Neck", "Shoulders", "Cloak", "Chest", "Shirt", "Tabard", "Bracer", "Gloves", "Belt", "Legs", "Boots", "Ring #1", "Ring #2", "Trinket #1", "Trinket #2", "Main-hand", "Off-hand", "Ranged"];
     const bannedItems = [1, 5, 6, 9, 14, 15];
     var missingEnchants = [];
 
     const options = {
-        uri: `http://armory.warmane.com/character/${getName(name)}/Icecrown/`,
+        uri: `http://armory.warmane.com/character/${getName(name)}/${realm}/`,
         transform: function (body) {
             return cheerio.load(body);
         }
@@ -298,9 +325,9 @@ function getEnchants(name) {
     });
 }
 
-function getArmory(name) {
+function getArmory(realm, name) {
     return new Promise((resolve, reject) => {
-        resolve(`${getName(name)}'s Armory link: http://armory.warmane.com/character/${getName(name)}/Icecrown/`);
+        resolve(`${getName(name)}'s Armory link: http://armory.warmane.com/character/${getName(name)}/${realm}/`);
     });
 }
 
