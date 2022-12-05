@@ -9,21 +9,15 @@ const client = new Discord.Client();
 let chatMsg;
 
 client.on('ready', () => {
-    console.log(`Logged in as ${client.user.tag}!`);
-});
-
-client.on("guildCreate", (guild) => {
-    console.log("Guilds:");
-    client.guilds.forEach((guild) => {
-        console.log(guild.name);
-    });
+    console.log(`[${new Date().toLocaleString()}]:> Logged in as ${client.user.tag}!`);
 });
 
 client.on('message', msg => {
 
     chatMsg = msg;
     if (chatMsg.content[0] === "!") {
-        console.log("[" + new Date().toLocaleString() + "]:> " + msg.content);
+        console.log(`[${new Date().toLocaleString()}]:> ${msg.content}`);
+
         let command = chatMsg.content.split(" ")[0].substring(1);
         let name = chatMsg.content.split(" ")[1];
         let realm = chatMsg.content.split(" ")[2] == null ? "Icecrown" : chatMsg.content.split(" ")[2];
