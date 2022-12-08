@@ -2,9 +2,9 @@ const request = require("request-promise");
 const MongoClient = require('mongodb').MongoClient;
 const url = `mongodb+srv://${process.env.mongo_username}:${process.env.mongo_password}@${process.env.mongo_uri}/${process.env.mongo_database}`;
 const cheerio = require("cheerio");
-
-const Discord = require("discord.js");
-const client = new Discord.Client();
+const selenium = require("selenium-webdriver");
+const { Client, Intents } = require("discord.js");
+const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 
 let chatMsg;
 
@@ -77,7 +77,7 @@ client.on('message', msg => {
     **Status**: ${character.online ? "Online" : "Offline"}
     **Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction}
     **Guild**: ${character.guild}
-    **Specs**: ${character.talents.map(talent => talent.tree).join(" and ")}
+    **Specs**: ${character.talents.map((talent) => talent.tree + "(" + talent.points.map(p => p).join("/") + ")").join(" and ")}
     **Professions**: ${character.professions.map(profession => (profession.skill + " " + profession.name)).join(" and ")}
     **Achievement points**: ${character.achievementpoints}
     **Honorable kills**: ${character.honorablekills}
