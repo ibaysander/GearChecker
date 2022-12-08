@@ -12,7 +12,7 @@ client.on('ready', () => {
     console.log(`[${new Date().toLocaleString()}]:> Logged in as ${client.user.tag}!`);
 });
 
-client.on('message', msg => {
+client.on('messageCreate', msg => {
 
     chatMsg = msg;
     if (chatMsg.content[0] === "!") {
