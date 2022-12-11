@@ -13,7 +13,6 @@ client.on('ready', () => {
 });
 
 client.on('messageCreate', msg => {
-
     chatMsg = msg;
     if (chatMsg.content[0] === "!") {
         console.log(`[${new Date().toLocaleString()}]:> ${msg.content}`);
@@ -77,7 +76,7 @@ client.on('messageCreate', msg => {
     **Status**: ${character.online ? "Online" : "Offline"}
     **Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction}
     **Guild**: ${character.guild}
-    **Specs**: ${character.talents.map((talent) => talent.tree + "(" + talent.points.map(p => p).join("/") + ")").join(" and ")}
+    **Specs**: ${getTalents(character.talents)}
     **Professions**: ${character.professions.map(profession => (profession.skill + " " + profession.name)).join(" and ")}
     **Achievement points**: ${character.achievementpoints}
     **Honorable kills**: ${character.honorablekills}
@@ -92,7 +91,6 @@ client.on('messageCreate', msg => {
                     });
                 });
             }
-
         }
 
         if (typeof commands[command] === "function") {
@@ -323,6 +321,24 @@ function getArmory(realm, name) {
     return new Promise((resolve, reject) => {
         resolve(`${getName(name)}'s Armory link: http://armory.warmane.com/character/${getName(name)}/${realm}/`);
     });
+}
+
+function getTalents(talents) {
+    let res = "";
+
+    if (talents != null) {
+        for (let i = 0; i < talents.length; i++) {
+            if (i == 1) res += " and ";
+
+            res += talents[i].tree;
+
+            if (talents[i].points != null) {
+                res += "(" + talents[i].points.map(p => p).join("/") + ")";
+            }
+        }
+    }
+
+    return res;
 }
 
 function getName(name) {
