@@ -21,6 +21,9 @@ client.on('messageCreate', msg => {
         let name = chatMsg.content.split(" ")[1];
         let realm = chatMsg.content.split(" ")[2] == null ? "Icecrown" : chatMsg.content.split(" ")[2];
 
+        // Fix format
+        realm = realm.toLowerCase().replace(realm[0].toLowerCase(), realm[0].toUpperCase());
+
         const commands = {
             "help": () => {
                 chatMsg.channel.send(`
@@ -327,7 +330,7 @@ function getTalents(talents) {
     let res = "";
 
     if (talents != null) {
-        for (let i = 0; i < talents.length; i++) {
+        for (let i=0; i < talents.length; i++) {
             if (i == 1) res += " and ";
 
             res += talents[i].tree;
