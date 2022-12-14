@@ -17,9 +17,11 @@ client.on('messageCreate', msg => {
     if (chatMsg.content[0] === "!") {
         console.log(`[${new Date().toLocaleString()}]:> ${msg.content}`);
 
+        const realms = ["Icecrown", "Lordaeron", "Frostmourne", "Blackrock"]
+
         let command = chatMsg.content.split(" ")[0].substring(1);
         let name = chatMsg.content.split(" ")[1];
-        let realm = chatMsg.content.split(" ")[2] == null ? "Icecrown" : chatMsg.content.split(" ")[2];
+        let realm = chatMsg.content.split(" ")[2] == null ? realms[0] : chatMsg.content.split(" ")[2];
 
         // Fix format
         realm = realm.toLowerCase().replace(realm[0].toLowerCase(), realm[0].toUpperCase());
@@ -30,20 +32,25 @@ client.on('messageCreate', msg => {
 **Info**:
             **Hello! I'm Snuske's child! I now officially support Lordaeron and other WotLK Warmane realms! 
             The usage is the same as before but you can add the realm after your character's name. 
-            But if you don't I'll search in Icecrown as a default realm.**                
+            But if you don't I'll search in Icecrown as the default realm.**                
                 
 **Supported commands**:
             **!help**: Displays this help text.
-            **!guild**: Displays the gild of the player.
-            **!gs**: Displays the GearScore of the player. 
-            **!ench**: Displays which enchants are missing from the player's currently equipped items.
-            **!gems**: Displays which gems are missing from the player's currently equipped items.
-            **!armory**: Returns a link to the player's armory.
-            **!summary**: Lists all the details regarding the given player.
+            **!guild [player_name] [realm?]**: Displays the gild of the player.
+            **!gs [player_name] [realm?]**: Displays the GearScore of the player. 
+            **!ench [player_name] [realm?]**: Displays which enchants are missing from the player's currently equipped items.
+            **!gems [player_name] [realm?]**: Displays which gems are missing from the player's currently equipped items.
+            **!armory [player_name] [realm?]**: Returns a link to the player's armory.
+            **!summary [player_name] [realm?]**: Lists all the details regarding the given player.
+            
+            **[realm?]** is an optional parameter. By default = Icecrown.
             
 **Example of usage**:
             !summary Metalforce Icecrown
+            !guild Metalforce
+            !gs Metalforce
             !summary Koch Lordaeron
+            !gs Koch Lordaeron
                  `)
             },
             "guild": () => {
@@ -89,16 +96,22 @@ client.on('messageCreate', msg => {
     **Armory**: ${armory}
                              `);
                             });
-
                         });
                     });
                 });
             }
         }
 
-        if (typeof commands[command] === "function") {
+        if (typeof commands[command] === "function" && realms.includes(realm)) {
             //If the command sent is actually a command, execute it!
             commands[command]();
+        }
+        else {
+            chatMsg.channel.send(`
+**Invalid command**: 
+            ${chatMsg.content}
+            
+Please execute the !help command to see the list of supported commands and an example of usage.`)
         }
     }
 });
