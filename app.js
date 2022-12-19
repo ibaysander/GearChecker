@@ -76,10 +76,15 @@ client.on('messageCreate', msg => {
                     chatMsg.channel.send(message);
                 })
             },
+            "test": () => {
+                getAchievements(realm, name).then(message => {
+                    chatMsg.channel.send(message);
+                })
+            },
             "summary": () => {
                 getGearScore(realm, name).then(character => {
                     getEnchants(realm, name).then(enchants => {
-                        getGems(realm, name).then(gems => {
+                        getGems(realm, name, character.professions).then(gems => {
                             getArmory(realm, name).then(armory => {
                                 chatMsg.channel.send(`
     Here is a summary for **${getName(name)}**:
@@ -209,9 +214,9 @@ function getParams(params) {
     return paramsMap;
 };
 
-function getGems(realm, name) {
+function getGems(realm, name, professions) {
     const itemNames = ["Head", "Neck", "Shoulders", "Cloak", "Chest", "Shirt", "Tabard", "Bracer", "Gloves", "Belt", "Legs", "Boots", "Ring #1", "Ring #2", "Trinket #1", "Trinket #2", "Main-hand", "Off-hand", "Ranged"];
-    let missingGems = [];
+
     const options = {
         uri: `http://armory.warmane.com/character/${getName(name)}/${realm}/`,
         transform: function (body) {
@@ -223,6 +228,9 @@ function getGems(realm, name) {
         var itemIDs = [];
         var actualItems = [];
         var i = 0;
+        let missingGems = [];
+
+
         request(options).then(($) => {
             $(".item-model a").each(function () {
                 var rel = $(this).attr("rel");
@@ -248,29 +256,33 @@ function getGems(realm, name) {
             });
 
             MongoClient.connect(url, (err, db) => {
-                if (err) { console.log(err); }
-                db.db(process.env.mongo_database).collection("items").find({ $or: itemIDs }).toArray((err, items) => {
-                    items.forEach(item => {
-                        var foundItem = actualItems.filter(x => x.itemID == item.itemID)[0];
-                        if (foundItem.type == "Belt") {
-                            if ((item.gems + 1) != foundItem.gems) {
-                                missingGems.push(foundItem.type);
-                            }
-                        } else {
-                            if (item.gems != foundItem.gems) {
-                                missingGems.push(foundItem.type);
-                            }
-                        }
-
-                    });
-                    if (missingGems.length === 0) {
-                        resolve(`${getName(name)} has gemmed all his items!`);
-                    } else {
-                        resolve(`${getName(name)} needs to gem ${missingGems.join(", ")}`);
+                    if (err) {
+                        console.log(err);
                     }
-                    db.close();
+                    db.db(process.env.mongo_database).collection("items").find({$or: itemIDs}).toArray((err, items) => {
+                        items.forEach(item => {
+                            let foundItem = actualItems.filter(x => x.itemID == item.itemID)[0];
+                            let hasBlacksmithing = professions.map(prof => prof.name).includes("Blacksmithing");
+                            let itsGlovesOrBracer = (foundItem.type == "Gloves" || foundItem.type == "Bracer");
+
+                            if (foundItem.type == "Belt" || (itsGlovesOrBracer && hasBlacksmithing)) {
+                                if ((item.gems + 1) != foundItem.gems) {
+                                    missingGems.push(foundItem.type);
+                                }
+                            }
+                            else if (item.gems > foundItem.gems) {
+                                missingGems.push(foundItem.type);
+                            }
+
+                        });
+                        if (missingGems.length === 0) {
+                            resolve(`${getName(name)} has gemmed all his items!`);
+                        } else {
+                            resolve(`${getName(name)} needs to gem ${missingGems.join(", ")}`);
+                        }
+                        db.close();
+                    });
                 });
-            });
         });
     });
 }
@@ -359,6 +371,48 @@ function getTalents(talents) {
 
 function getName(name) {
     return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+}
+
+function getAchievements(realm, name) {
+    const options = {
+        uri: `http://armory.warmane.com/character/${getName(name)}/${realm}/achievements`,
+        transform: function (body) {
+            return cheerio.load(body);
+        },
+        resolveWithFullResponse: true
+    };
+
+    return new Promise((resolve, reject) => {
+        request(options).then(($) => {
+            $(".categories a :nth-child(20)").click();
+            $("a:contains('Lich King 25-Player Raid')").click();
+            $("a:contains('Fall of the Lich King 25')").click();
+            console.log($("#ach4597 :nth-child(5)").text());
+
+            // $(".item-model a").each(function () {
+            //     var rel = $(this).attr("rel");
+            //     if (rel) {
+            //         var params = getParams(rel);
+            //         if (params["gems"]) {
+            //             var amount = params["gems"].split(":").filter(x => x != 0).length;
+            //         } else {
+            //             var amount = 0;
+            //         }
+            //
+            //         itemIDs.push({
+            //             "itemID": Number(params["item"])
+            //         });
+            //
+            //         actualItems.push({
+            //             "itemID": Number(params["item"]),
+            //             "gems": amount,
+            //             "type": itemNames[i]
+            //         });
+            //     }
+            //     i++;
+            // });
+        });
+    });
 }
 
 //Release
