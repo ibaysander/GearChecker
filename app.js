@@ -166,9 +166,9 @@ function getGearScore(realm, name) {
             MongoClient.connect(url, (err, db) => {
                 if (err) { console.log(err); }
 
-                var itemsToFind = [];
+                if (character.equipment && character.equipment.length > 0) {
+                    var itemsToFind = [];
 
-                if (character.equipment) {
                     character.equipment.forEach(item => {
                         itemsToFind.push({
                             "itemID": Number(item.item)
