@@ -1,3 +1,4 @@
+require("dotenv").config();
 const request = require("request-promise");
 const MongoClient = require('mongodb').MongoClient;
 const url = `mongodb+srv://${process.env.mongo_username}:${process.env.mongo_password}@${process.env.mongo_uri}/${process.env.mongo_database}`;
