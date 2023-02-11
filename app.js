@@ -180,7 +180,11 @@ function getGearScore(realm, name) {
                         let weapons = [];
 
                         items.forEach(item => {
-                            if (item.class === 2 && (item.subclass === 1 || item.subclass === 5 || item.subclass === 8)) {
+                            if (character.class == "Hunter" && item.type == 26) {
+                                gearscore += item.GearScore * 5.3224;
+                            } else if (character.class == "Hunter" && item.type == 17) {
+                                gearscore += item.GearScore * 0.3164;
+                            } else if (item.class === 2 && (item.subclass === 1 || item.subclass === 5 || item.subclass === 8)) {
                                 weapons.push(item.GearScore);
                             } else {
                                 gearscore += item.GearScore;
