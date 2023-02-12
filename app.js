@@ -197,7 +197,7 @@ function getGearScore(realm, name) {
                         } else if (weapons.length == 1) {
                             gearscore += weapons[0];
                         }
-                        character.GearScore = gearscore;
+                        character.GearScore = Math.ceil(gearscore);
                         resolve(character);
                         db.close();
                     });
