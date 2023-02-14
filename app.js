@@ -3,10 +3,10 @@ const request = require("request-promise");
 const MongoClient = require('mongodb').MongoClient;
 const url = `mongodb+srv://${process.env.mongo_username}:${process.env.mongo_password}@${process.env.mongo_uri}/${process.env.mongo_database}`;
 const cheerio = require("cheerio");
-const selenium = require("selenium-webdriver");
 const { Client, Intents } = require("discord.js");
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 const crypto = require('crypto');
+const {camelCase} = require("cheerio/lib/utils");
 
 let chatMsg;
 
@@ -27,11 +27,8 @@ client.on('messageCreate', msg => {
             const realms = ["Icecrown", "Lordaeron", "Frostmourne", "Blackrock"]
 
             let command = chatMsg.content.split(" ")[0].substring(1);
-            let name = chatMsg.content.split(" ")[1];
-            let realm = chatMsg.content.split(" ")[2] == null ? realms[0] : chatMsg.content.split(" ")[2];
-
-            // Fix format
-            realm = realm.toLowerCase().replace(realm[0].toLowerCase(), realm[0].toUpperCase());
+            let name = getCamelToe(chatMsg.content.split(" ")[1]);
+            let realm = chatMsg.content.split(" ")[2] == null ? realms[0] : getCamelToe(chatMsg.content.split(" ")[2]);
 
             const commands = {
                 "help": () => {
@@ -61,11 +58,13 @@ client.on('messageCreate', msg => {
                  `)
                 },
                 "guild": () => {
-                    getGuild(realm, name, chatMsg);
+                    getGuild(realm, name).then(message => {
+                        chatMsg.channel.send(message);
+                    });
                 },
                 "gs": () => {
                     getGearScore(realm, name).then(character => {
-                        chatMsg.channel.send(`${getName(name)}'s GearScore is ${character.GearScore}`);
+                        chatMsg.channel.send(`${camelCase(name)}'s GearScore is ${character.GearScore}`);
                     })
                 },
                 "ench": () => {
@@ -94,7 +93,7 @@ client.on('messageCreate', msg => {
                             getGems(realm, name, character.professions).then(gems => {
                                 getArmory(realm, name).then(armory => {
                                     chatMsg.channel.send(`
-    Here is a summary for **${getName(name)}**:
+    Here is a summary for **${camelCase(name)}**:
     **Status**: ${character.online ? "Online" : "Offline"}
     **Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction}
     **Guild**: ${character.guild}
@@ -128,15 +127,15 @@ Please execute the !help command to see the list of supported commands and an ex
         }
     }
     catch (e){
-        console.log(`[${new Date().toLocaleString()}: ${guid}]:> ${e}`);
+        console.log(`[${new Date().toLocaleString()}: ${guid}]:> ${e.message}`);
 
-        SendTelegramMsg(`Guid: ${guid}\nCommand: ${chatMsg.content}\nUser: ${chatMsg.author.username}\n${e}`);
+        SendTelegramMsg(`Guid: ${guid}\nCommand: ${chatMsg.content}\nUser: ${chatMsg.author.username}\nError: ${e.message}`);
     }
 });
 
 class Character {
     constructor(realm, charName) {
-        this.request = request(`http://armory.warmane.com/api/character/${getName(charName)}/${realm}/`, (err, response, body) => {
+        this.request = request(`http://armory.warmane.com/api/character/${charName}/${realm}/`, (err, response, body) => {
             body = JSON.parse(body);
             this.name = body.name;
             this.realm = body.realm;
@@ -156,25 +155,42 @@ class Character {
     }
 }
 
-function getGuild(realm, name, chatMsg) {
-    var character = new Character(realm, name);
-    character.request.then(_ => {
-        let guild = character.guild
-        if (guild === "") {
-            chatMsg.channel.send("No guild found");
-        } else if (guild) {
-            chatMsg.channel.send(guild);
-        } else {
-            chatMsg.channel.send("Did you type the right name?");
+function getGuild(realm, name) {
+    let guild = "Did you type the right name?";
+
+    try {
+        let character = new Character(realm, name);
+
+        if (character) {
+            character.request.then(err => {
+                if (err) { console.log(err); }
+                else {
+                    guild = character.guild;
+
+                    if (character) {
+                        if (character.guild === "") {
+                            guild = "No guild found";
+                        } else if (character.guild) {
+                            guild = character.guild;
+                        }
+                    }
+                }
+            });
         }
-    });
+    }
+    catch (e) {
+        console.log(`[${new Date().toLocaleString()}]:> ${e.message}`);
+        SendTelegramMsg(e.message);
+
+        return guild;
+    }
 }
 
 function getGearScore(realm, name) {
-    var character = new Character(realm, name);
-    var gearscore = 0;
+    let character = new Character(realm, name);
+    let gearscore = 0;
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         character.request.then(_ => {
             MongoClient.connect(url, (err, db) => {
                 if (err) { console.log(err); }
@@ -214,7 +230,7 @@ function getGearScore(realm, name) {
                         db.close();
                     });
                 } else {
-                    chatMsg.channel.send(`${getName(name)} does not have any items equipped. Maybe you typed the wrong name?`);
+                    chatMsg.channel.send(`${camelCase(name)} does not have any items equipped. Maybe you typed the wrong name?`);
                 }
             });
         });
@@ -235,7 +251,7 @@ function getGems(realm, name, professions) {
     const itemNames = ["Head", "Neck", "Shoulders", "Cloak", "Chest", "Shirt", "Tabard", "Bracer", "Gloves", "Belt", "Legs", "Boots", "Ring #1", "Ring #2", "Trinket #1", "Trinket #2", "Main-hand", "Off-hand", "Ranged"];
 
     const options = {
-        uri: `http://armory.warmane.com/character/${getName(name)}/${realm}/`,
+        uri: `http://armory.warmane.com/character/${camelCase(name)}/${realm}/`,
         transform: function (body) {
             return cheerio.load(body);
         }
@@ -293,9 +309,9 @@ function getGems(realm, name, professions) {
 
                         });
                         if (missingGems.length === 0) {
-                            resolve(`${getName(name)} has gemmed all his items!`);
+                            resolve(`${camelCase(name)} has gemmed all his items!`);
                         } else {
-                            resolve(`${getName(name)} needs to gem ${missingGems.join(", ")}`);
+                            resolve(`${camelCase(name)} needs to gem ${missingGems.join(", ")}`);
                         }
                         db.close();
                     });
@@ -310,7 +326,7 @@ function getEnchants(realm, name) {
     var missingEnchants = [];
 
     const options = {
-        uri: `http://armory.warmane.com/character/${getName(name)}/${realm}/`,
+        uri: `http://armory.warmane.com/character/${camelCase(name)}/${realm}/`,
         transform: function (body) {
             return cheerio.load(body);
         }
@@ -354,9 +370,9 @@ function getEnchants(realm, name) {
                 }
             };
             if (missingEnchants.length === 0) {
-                resolve(`${getName(name)} has all enchants!`);
+                resolve(`${camelCase(name)} has all enchants!`);
             } else {
-                resolve(`${getName(name)} is missing enchants from: ${missingEnchants.join(", ")}`);
+                resolve(`${camelCase(name)} is missing enchants from: ${missingEnchants.join(", ")}`);
             }
         });
     });
@@ -364,7 +380,7 @@ function getEnchants(realm, name) {
 
 function getArmory(realm, name) {
     return new Promise((resolve, reject) => {
-        resolve(`${getName(name)}'s Armory link: http://armory.warmane.com/character/${getName(name)}/${realm}/`);
+        resolve(`${camelCase(name)}'s Armory link: http://armory.warmane.com/character/${camelCase(name)}/${realm}/`);
     });
 }
 
@@ -386,50 +402,10 @@ function getTalents(talents) {
     return res;
 }
 
-function getName(name) {
-    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-}
-
-function getAchievements(realm, name) {
-    const options = {
-        uri: `http://armory.warmane.com/character/${getName(name)}/${realm}/achievements`,
-        transform: function (body) {
-            return cheerio.load(body);
-        },
-        resolveWithFullResponse: true
-    };
-
-    return new Promise((resolve, reject) => {
-        request(options).then(($) => {
-            $(".categories a :nth-child(20)").click();
-            $("a:contains('Lich King 25-Player Raid')").click();
-            $("a:contains('Fall of the Lich King 25')").click();
-            console.log($("#ach4597 :nth-child(5)").text());
-
-            // $(".item-model a").each(function () {
-            //     var rel = $(this).attr("rel");
-            //     if (rel) {
-            //         var params = getParams(rel);
-            //         if (params["gems"]) {
-            //             var amount = params["gems"].split(":").filter(x => x != 0).length;
-            //         } else {
-            //             var amount = 0;
-            //         }
-            //
-            //         itemIDs.push({
-            //             "itemID": Number(params["item"])
-            //         });
-            //
-            //         actualItems.push({
-            //             "itemID": Number(params["item"]),
-            //             "gems": amount,
-            //             "type": itemNames[i]
-            //         });
-            //     }
-            //     i++;
-            // });
-        });
-    });
+function getCamelToe(str) {
+    return str.replace(/(?:^\w|[A-Z]|\b\w)/g, function(word, index) {
+        return index === 0 ? word.toLowerCase() : word.toUpperCase();
+    }).replace(/\s+/g, '');
 }
 
 function SendTelegramMsg(msg) {
