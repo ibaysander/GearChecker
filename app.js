@@ -6,6 +6,7 @@ const cheerio = require("cheerio");
 const selenium = require("selenium-webdriver");
 const { Client, Intents } = require("discord.js");
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
+const crypto = require('crypto');
 
 let chatMsg;
 
@@ -14,22 +15,27 @@ client.on('ready', () => {
 });
 
 client.on('messageCreate', msg => {
+    let guid = crypto.randomUUID();
     chatMsg = msg;
-    if (chatMsg.content[0] === "!") {
-        console.log(`[${new Date().toLocaleString()}]:> ${msg.content}`);
 
-        const realms = ["Icecrown", "Lordaeron", "Frostmourne", "Blackrock"]
+    try {
+        if (chatMsg.content[0] === "!") {
+            console.log(`[${new Date().toLocaleString()}: ${guid}]:> ${msg.content}`);
 
-        let command = chatMsg.content.split(" ")[0].substring(1);
-        let name = chatMsg.content.split(" ")[1];
-        let realm = chatMsg.content.split(" ")[2] == null ? realms[0] : chatMsg.content.split(" ")[2];
+            SendTelegramMsg(`Guid: ${guid}\nCommand: ${chatMsg.content}\nUser: ${chatMsg.author.username}\n`);
 
-        // Fix format
-        realm = realm.toLowerCase().replace(realm[0].toLowerCase(), realm[0].toUpperCase());
+            const realms = ["Icecrown", "Lordaeron", "Frostmourne", "Blackrock"]
 
-        const commands = {
-            "help": () => {
-                chatMsg.channel.send(`
+            let command = chatMsg.content.split(" ")[0].substring(1);
+            let name = chatMsg.content.split(" ")[1];
+            let realm = chatMsg.content.split(" ")[2] == null ? realms[0] : chatMsg.content.split(" ")[2];
+
+            // Fix format
+            realm = realm.toLowerCase().replace(realm[0].toLowerCase(), realm[0].toUpperCase());
+
+            const commands = {
+                "help": () => {
+                    chatMsg.channel.send(`
 **Info**:
             **Hello! I'm Snuske's child! I now officially support Lordaeron and other WotLK Warmane realms! 
             The usage is the same as before but you can add the realm after your character's name. 
@@ -53,41 +59,41 @@ client.on('messageCreate', msg => {
             !summary Koch Lordaeron
             !gs Koch Lordaeron
                  `)
-            },
-            "guild": () => {
-                getGuild(realm, name, chatMsg);
-            },
-            "gs": () => {
-                getGearScore(realm, name).then(character => {
-                    chatMsg.channel.send(`${getName(name)}'s GearScore is ${character.GearScore}`);
-                })
-            },
-            "ench": () => {
-                getEnchants(realm, name).then(message => {
-                    chatMsg.channel.send(message);
-                })
-            },
-            "gems": () => {
-                getGems(realm, name).then(message => {
-                    chatMsg.channel.send(message);
-                })
-            },
-            "armory": () => {
-                getArmory(realm, name).then(message => {
-                    chatMsg.channel.send(message);
-                })
-            },
-            "test": () => {
-                getAchievements(realm, name).then(message => {
-                    chatMsg.channel.send(message);
-                })
-            },
-            "summary": () => {
-                getGearScore(realm, name).then(character => {
-                    getEnchants(realm, name).then(enchants => {
-                        getGems(realm, name, character.professions).then(gems => {
-                            getArmory(realm, name).then(armory => {
-                                chatMsg.channel.send(`
+                },
+                "guild": () => {
+                    getGuild(realm, name, chatMsg);
+                },
+                "gs": () => {
+                    getGearScore(realm, name).then(character => {
+                        chatMsg.channel.send(`${getName(name)}'s GearScore is ${character.GearScore}`);
+                    })
+                },
+                "ench": () => {
+                    getEnchants(realm, name).then(message => {
+                        chatMsg.channel.send(message);
+                    })
+                },
+                "gems": () => {
+                    getGems(realm, name).then(message => {
+                        chatMsg.channel.send(message);
+                    })
+                },
+                "armory": () => {
+                    getArmory(realm, name).then(message => {
+                        chatMsg.channel.send(message);
+                    })
+                },
+                "test": () => {
+                    getAchievements(realm, name).then(message => {
+                        chatMsg.channel.send(message);
+                    })
+                },
+                "summary": () => {
+                    getGearScore(realm, name).then(character => {
+                        getEnchants(realm, name).then(enchants => {
+                            getGems(realm, name, character.professions).then(gems => {
+                                getArmory(realm, name).then(armory => {
+                                    chatMsg.channel.send(`
     Here is a summary for **${getName(name)}**:
     **Status**: ${character.online ? "Online" : "Offline"}
     **Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction}
@@ -101,24 +107,30 @@ client.on('messageCreate', msg => {
     **Gems**: ${gems}
     **Armory**: ${armory}
                              `);
+                                });
                             });
                         });
                     });
-                });
+                }
             }
-        }
 
-        if (typeof commands[command] === "function" && realms.includes(realm)) {
-            //If the command sent is actually a command, execute it!
-            commands[command]();
-        }
-        else {
-            chatMsg.channel.send(`
+            if (typeof commands[command] === "function" && realms.includes(realm)) {
+                //If the command sent is actually a command, execute it!
+                commands[command]();
+            }
+            else {
+                chatMsg.channel.send(`
 **Invalid command**: 
             ${chatMsg.content}
             
 Please execute the !help command to see the list of supported commands and an example of usage.`)
+            }
         }
+    }
+    catch (e){
+        console.log(`[${new Date().toLocaleString()}: ${guid}]:> ${e}`);
+
+        SendTelegramMsg(`Guid: ${guid}\nCommand: ${chatMsg.content}\nUser: ${chatMsg.author.username}\n${e}`);
     }
 });
 
@@ -420,5 +432,17 @@ function getAchievements(realm, name) {
     });
 }
 
-//Release
+function SendTelegramMsg(msg) {
+    try {
+        msg = `Timestamp: ${new Date().toLocaleString()}\n${msg}`
+
+        request.post(
+            `https://api.telegram.org/bot${process.env.telegram_bot_id}/sendMessage?chat_id=${process.env.telegram_chat_id}&text=${msg}`
+        )
+    }
+    catch (e) {
+        console.log(`[${new Date().toLocaleString()}]:> ${e}`);
+    }
+}
+
 client.login(process.env.discord_bot_id);
