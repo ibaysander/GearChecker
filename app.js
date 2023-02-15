@@ -8,31 +8,28 @@ const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_
 const crypto = require('crypto');
 const {camelCase} = require("cheerio/lib/utils");
 
-let chatMsg;
-
 client.on('ready', () => {
     console.log(`[${new Date().toLocaleString()}]:> Logged in as ${client.user.tag}!`);
 });
 
 client.on('messageCreate', msg => {
     let guid = crypto.randomUUID();
-    chatMsg = msg;
 
     try {
-        if (chatMsg.content[0] === "!") {
+        if (msg.content[0] === "!") {
             console.log(`[${new Date().toLocaleString()}: ${guid}]:> ${msg.content}`);
 
-            SendTelegramMsg(`Guid: ${guid}\nCommand: ${chatMsg.content}\nUser: ${chatMsg.author.username}\n`);
+            SendTelegramMsg(`Guid: ${guid}\nCommand: ${msg.content}\nUser: ${msg.author.username}\n`);
 
             const realms = ["Icecrown", "Lordaeron", "Frostmourne", "Blackrock"]
 
-            let command = chatMsg.content.split(" ")[0].substring(1);
-            let name = getCamelToe(chatMsg.content.split(" ")[1]);
-            let realm = chatMsg.content.split(" ")[2] == null ? realms[0] : getCamelToe(chatMsg.content.split(" ")[2]);
+            let command = msg.content.split(" ")[0].substring(1);
+            let name = getCamelToe(msg.content.split(" ")[1]);
+            let realm = getCamelToe(msg.content.split(" ")[2] == null ? realms[0] : msg.content.split(" ")[2]);
 
             const commands = {
                 "help": () => {
-                    chatMsg.channel.send(`
+                    msg.channel.send(`
 **Info**:
             **Hello! I'm Snuske's child! I now officially support Lordaeron and other WotLK Warmane realms! 
             The usage is the same as before but you can add the realm after your character's name. 
@@ -59,32 +56,32 @@ client.on('messageCreate', msg => {
                 },
                 "guild": () => {
                     getGuild(realm, name).then(message => {
-                        chatMsg.channel.send(message);
+                        msg.channel.send(message);
                     });
                 },
                 "gs": () => {
                     getGearScore(realm, name).then(character => {
-                        chatMsg.channel.send(`${camelCase(name)}'s GearScore is ${character.GearScore}`);
+                        msg.channel.send(`${camelCase(name)}'s GearScore is ${character.GearScore}`);
                     })
                 },
                 "ench": () => {
                     getEnchants(realm, name).then(message => {
-                        chatMsg.channel.send(message);
+                        msg.channel.send(message);
                     })
                 },
                 "gems": () => {
                     getGems(realm, name).then(message => {
-                        chatMsg.channel.send(message);
+                        msg.channel.send(message);
                     })
                 },
                 "armory": () => {
                     getArmory(realm, name).then(message => {
-                        chatMsg.channel.send(message);
+                        msg.channel.send(message);
                     })
                 },
                 "test": () => {
                     getAchievements(realm, name).then(message => {
-                        chatMsg.channel.send(message);
+                        msg.channel.send(message);
                     })
                 },
                 "summary": () => {
@@ -92,7 +89,7 @@ client.on('messageCreate', msg => {
                         getEnchants(realm, name).then(enchants => {
                             getGems(realm, name, character.professions).then(gems => {
                                 getArmory(realm, name).then(armory => {
-                                    chatMsg.channel.send(`
+                                    msg.channel.send(`
     Here is a summary for **${camelCase(name)}**:
     **Status**: ${character.online ? "Online" : "Offline"}
     **Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction}
@@ -118,9 +115,9 @@ client.on('messageCreate', msg => {
                 commands[command]();
             }
             else {
-                chatMsg.channel.send(`
+                msg.channel.send(`
 **Invalid command**: 
-            ${chatMsg.content}
+            ${msg.content}
             
 Please execute the !help command to see the list of supported commands and an example of usage.`)
             }
@@ -129,7 +126,7 @@ Please execute the !help command to see the list of supported commands and an ex
     catch (e){
         console.log(`[${new Date().toLocaleString()}: ${guid}]:> ${e.message}`);
 
-        SendTelegramMsg(`Guid: ${guid}\nCommand: ${chatMsg.content}\nUser: ${chatMsg.author.username}\nError: ${e.message}`);
+        SendTelegramMsg(`Guid: ${guid}\nCommand: ${msg.content}\nUser: ${msg.author.username}\nError: ${e.message}`);
     }
 });
 
@@ -162,26 +159,20 @@ function getGuild(realm, name) {
         let character = new Character(realm, name);
 
         if (character) {
-            character.request.then(err => {
-                if (err) { console.log(err); }
-                else {
-                    guild = character.guild;
+            character.request.then(_ => {
+                guild = character.guild;
 
-                    if (character) {
-                        if (character.guild === "") {
-                            guild = "No guild found";
-                        } else if (character.guild) {
-                            guild = character.guild;
-                        }
+                if (character) {
+                    if (character.guild === "") {
+                        guild = "No guild found";
+                    } else if (character.guild) {
+                        guild = character.guild;
                     }
                 }
             });
         }
     }
     catch (e) {
-        console.log(`[${new Date().toLocaleString()}]:> ${e.message}`);
-        SendTelegramMsg(e.message);
-
         return guild;
     }
 }
@@ -230,7 +221,7 @@ function getGearScore(realm, name) {
                         db.close();
                     });
                 } else {
-                    chatMsg.channel.send(`${camelCase(name)} does not have any items equipped. Maybe you typed the wrong name?`);
+                    msg.channel.send(`${camelCase(name)} does not have any items equipped. Maybe you typed the wrong name?`);
                 }
             });
         });
@@ -403,9 +394,13 @@ function getTalents(talents) {
 }
 
 function getCamelToe(str) {
-    return str.replace(/(?:^\w|[A-Z]|\b\w)/g, function(word, index) {
-        return index === 0 ? word.toLowerCase() : word.toUpperCase();
-    }).replace(/\s+/g, '');
+    if (str) {
+        str = str.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '');
+        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    }
+    else {
+       return str;
+    }
 }
 
 function SendTelegramMsg(msg) {
