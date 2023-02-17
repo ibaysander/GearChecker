@@ -155,25 +155,20 @@ class Character {
 function getGuild(realm, name) {
     let guild = "Did you type the right name?";
 
-    try {
-        let character = new Character(realm, name);
+    let character = new Character(realm, name);
 
-        if (character) {
-            character.request.then(_ => {
-                guild = character.guild;
+    if (character) {
+        character.request.then(_ => {
+            guild = character.guild;
 
-                if (character) {
-                    if (character.guild === "") {
-                        guild = "No guild found";
-                    } else if (character.guild) {
-                        guild = character.guild;
-                    }
+            if (character) {
+                if (character.guild === "") {
+                    guild = "No guild found";
+                } else if (character.guild) {
+                    guild = character.guild;
                 }
-            });
-        }
-    }
-    catch (e) {
-        return guild;
+            }
+        });
     }
 }
 
@@ -408,7 +403,7 @@ function SendTelegramMsg(msg) {
         msg = `Timestamp: ${new Date().toLocaleString()}\n${msg}`
 
         request.post(
-            `https://api.telegram.org/bot${process.env.telegram_bot_id}/sendMessage?chat_id=${process.env.telegram_chat_id}&text=${msg}`
+            encodeURI(`https://api.telegram.org/bot${process.env.telegram_bot_id}/sendMessage?chat_id=${process.env.telegram_chat_id}&text=${msg}`)
         )
     }
     catch (e) {
