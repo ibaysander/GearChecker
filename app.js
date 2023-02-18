@@ -19,7 +19,7 @@ client.on('messageCreate', msg => {
         if (msg.content[0] === "!") {
             console.log(`[${new Date().toLocaleString()}: ${guid}]:> ${msg.content}`);
 
-            SendTelegramMsg(`Guid: ${guid}\nCommand: ${msg.content}\nUser: ${msg.author.username}\n`);
+            SendTelegramMsg(`Guid: ${guid}\nCommand: ${msg.content}\nUser: ${msg.author.username}#${msg.author.discriminator}\n`);
 
             const realms = ["Icecrown", "Lordaeron", "Frostmourne", "Blackrock"]
 
@@ -126,7 +126,7 @@ Please execute the !help command to see the list of supported commands and an ex
     catch (e){
         console.log(`[${new Date().toLocaleString()}: ${guid}]:> ${e.message}`);
 
-        SendTelegramMsg(`Guid: ${guid}\nCommand: ${msg.content}\nUser: ${msg.author.username}\nError: ${e.message}`);
+        SendTelegramMsg(`Guid: ${guid}\nCommand: ${msg.content}\nUser: ${msg.author.username}#${msg.author.discriminator}\nError: ${e.message}`);
     }
 });
 
