@@ -6,7 +6,6 @@ const cheerio = require("cheerio");
 const { Client, Intents } = require("discord.js");
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 const crypto = require('crypto');
-const {camelCase} = require("cheerio/lib/utils");
 
 client.on('ready', () => {
     console.log(`[${new Date().toLocaleString()}]:> Logged in as ${client.user.tag}!`);
@@ -18,8 +17,6 @@ client.on('messageCreate', msg => {
     try {
         if (msg.content[0] === "!") {
             console.log(`[${new Date().toLocaleString()}: ${guid}]:> ${msg.content}`);
-
-            SendTelegramMsg(`Guid: ${guid}\nCommand: ${msg.content}\nUser: ${msg.author.username}#${msg.author.discriminator}\n`);
 
             const realms = ["Icecrown", "Lordaeron", "Frostmourne", "Blackrock"]
 
@@ -61,7 +58,7 @@ client.on('messageCreate', msg => {
                 },
                 "gs": () => {
                     getGearScore(realm, name).then(character => {
-                        msg.channel.send(`${camelCase(name)}'s GearScore is ${character.GearScore}`);
+                        msg.channel.send(`${getCamelToe(name)}'s GearScore is ${character.GearScore}`);
                     })
                 },
                 "ench": () => {
@@ -90,7 +87,7 @@ client.on('messageCreate', msg => {
                             getGems(realm, name, character.professions).then(gems => {
                                 getArmory(realm, name).then(armory => {
                                     msg.channel.send(`
-    Here is a summary for **${camelCase(name)}**:
+    Here is a summary for **${getCamelToe(name)}**:
     **Status**: ${character.online ? "Online" : "Offline"}
     **Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction}
     **Guild**: ${character.guild}
@@ -216,7 +213,7 @@ function getGearScore(realm, name) {
                         db.close();
                     });
                 } else {
-                    msg.channel.send(`${camelCase(name)} does not have any items equipped. Maybe you typed the wrong name?`);
+                    msg.channel.send(`${getCamelToe(name)} does not have any items equipped. Maybe you typed the wrong name?`);
                 }
             });
         });
@@ -237,7 +234,7 @@ function getGems(realm, name, professions) {
     const itemNames = ["Head", "Neck", "Shoulders", "Cloak", "Chest", "Shirt", "Tabard", "Bracer", "Gloves", "Belt", "Legs", "Boots", "Ring #1", "Ring #2", "Trinket #1", "Trinket #2", "Main-hand", "Off-hand", "Ranged"];
 
     const options = {
-        uri: `http://armory.warmane.com/character/${camelCase(name)}/${realm}/`,
+        uri: `http://armory.warmane.com/character/${getCamelToe(name)}/${realm}/`,
         transform: function (body) {
             return cheerio.load(body);
         }
@@ -295,9 +292,9 @@ function getGems(realm, name, professions) {
 
                         });
                         if (missingGems.length === 0) {
-                            resolve(`${camelCase(name)} has gemmed all his items!`);
+                            resolve(`${getCamelToe(name)} has gemmed all his items!`);
                         } else {
-                            resolve(`${camelCase(name)} needs to gem ${missingGems.join(", ")}`);
+                            resolve(`${getCamelToe(name)} needs to gem ${missingGems.join(", ")}`);
                         }
                         db.close();
                     });
@@ -312,7 +309,7 @@ function getEnchants(realm, name) {
     var missingEnchants = [];
 
     const options = {
-        uri: `http://armory.warmane.com/character/${camelCase(name)}/${realm}/`,
+        uri: `http://armory.warmane.com/character/${getCamelToe(name)}/${realm}/`,
         transform: function (body) {
             return cheerio.load(body);
         }
@@ -356,9 +353,9 @@ function getEnchants(realm, name) {
                 }
             };
             if (missingEnchants.length === 0) {
-                resolve(`${camelCase(name)} has all enchants!`);
+                resolve(`${getCamelToe(name)} has all enchants!`);
             } else {
-                resolve(`${camelCase(name)} is missing enchants from: ${missingEnchants.join(", ")}`);
+                resolve(`${getCamelToe(name)} is missing enchants from: ${missingEnchants.join(", ")}`);
             }
         });
     });
@@ -366,7 +363,7 @@ function getEnchants(realm, name) {
 
 function getArmory(realm, name) {
     return new Promise((resolve, reject) => {
-        resolve(`${camelCase(name)}'s Armory link: http://armory.warmane.com/character/${camelCase(name)}/${realm}/`);
+        resolve(`${getCamelToe(name)}'s Armory link: http://armory.warmane.com/character/${getCamelToe(name)}/${realm}/`);
     });
 }
 
@@ -389,9 +386,10 @@ function getTalents(talents) {
 }
 
 function getCamelToe(str) {
-    if (str) {
-        str = str.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '');
-        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    var onlyLetters = str.replace(/[^a-zA-Z]+/g, '');
+
+    if (onlyLetters) {
+        return onlyLetters.charAt(0).toUpperCase() + onlyLetters.slice(1).toLowerCase();
     }
     else {
        return str;
@@ -400,7 +398,7 @@ function getCamelToe(str) {
 
 function SendTelegramMsg(msg) {
     try {
-        msg = `Timestamp: ${new Date().toLocaleString()}\n${msg}`
+        msg = `Timestamp: ${new Date().toLocaleString()}\n${msg}`;
 
         request.post(
             encodeURI(`https://api.telegram.org/bot${process.env.telegram_bot_id}/sendMessage?chat_id=${process.env.telegram_chat_id}&text=${msg}`)
