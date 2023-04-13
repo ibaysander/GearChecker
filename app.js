@@ -7,12 +7,15 @@ const { Client, Intents } = require("discord.js");
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 const crypto = require('crypto');
 
+let msg;
+
 client.on('ready', () => {
     console.log(`[${new Date().toLocaleString()}]:> Logged in as ${client.user.tag}!`);
 });
 
-client.on('messageCreate', msg => {
+client.on('messageCreate', msgIn => {
     let guid = crypto.randomUUID();
+    msg = msgIn;
 
     try {
         if (msg.content[0] === "!") {
