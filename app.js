@@ -153,23 +153,13 @@ class Character {
 }
 
 function getGuild(realm, name) {
-    let guild = "Did you type the right name?";
-
     let character = new Character(realm, name);
 
-    if (character) {
+    return new Promise((resolve) => {
         character.request.then(_ => {
-            guild = character.guild;
-
-            if (character) {
-                if (character.guild === "") {
-                    guild = "No guild found";
-                } else if (character.guild) {
-                    guild = character.guild;
-                }
-            }
+            resolve(character.guild !== undefined ? character.guild : "No guild found");
         });
-    }
+    });
 }
 
 async function getGearScore(realm, name) {
