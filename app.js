@@ -1,7 +1,7 @@
 require("dotenv").config();
 const request = require("request-promise");
-const MongoClient = require('mongodb').MongoClient;
 const url = `mongodb+srv://${process.env.mongo_username}:${process.env.mongo_password}@${process.env.mongo_uri}/${process.env.mongo_database}`;
+const MongoClient = require('mongodb').MongoClient;
 const cheerio = require("cheerio");
 const { Client, Intents } = require("discord.js");
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
@@ -172,14 +172,14 @@ function getGuild(realm, name) {
     }
 }
 
-function getGearScore(realm, name) {
+async function getGearScore(realm, name) {
     let character = new Character(realm, name);
     let gearscore = 0;
 
     return new Promise((resolve) => {
         character.request.then(_ => {
-            MongoClient.connect(url, (err, db) => {
-                if (err) { console.log(err); }
+            MongoClient.connect(url).then(async client => {
+                const itemsDB = client.db(process.env.mongo_database).collection("items");
 
                 if (character.equipment && character.equipment.length > 0) {
                     var itemsToFind = [];
@@ -190,31 +190,32 @@ function getGearScore(realm, name) {
                         });
                     });
 
-                    db.db(process.env.mongo_database).collection("items").find({ $or: itemsToFind }).toArray((err, items) => {
-                        let weapons = [];
+                    const cursor = itemsDB.find({$or: itemsToFind});
+                    const items = await cursor.toArray();
 
-                        items.forEach(item => {
-                            if (character.class == "Hunter" && item.type == 26) {
-                                gearscore += item.GearScore * 5.3224;
-                            } else if (character.class == "Hunter" && item.type == 17) {
-                                gearscore += item.GearScore * 0.3164;
-                            } else if (item.class === 2 && (item.subclass === 1 || item.subclass === 5 || item.subclass === 8)) {
-                                weapons.push(item.GearScore);
-                            } else {
-                                gearscore += item.GearScore;
-                            }
-                        });
+                    let weapons = [];
 
-                        // Probably a warrior with Titan's Grip
-                        if (weapons.length == 2) {
-                            gearscore += Math.floor(((weapons[0] + weapons[1]) / 2));
-                        } else if (weapons.length == 1) {
-                            gearscore += weapons[0];
+                    items.forEach(item => {
+                        if (character.class == "Hunter" && item.type == 26) {
+                            gearscore += item.GearScore * 5.3224;
+                        } else if (character.class == "Hunter" && item.type == 17) {
+                            gearscore += item.GearScore * 0.3164;
+                        } else if (item.class === 2 && (item.subclass === 1 || item.subclass === 5 || item.subclass === 8)) {
+                            weapons.push(item.GearScore);
+                        } else {
+                            gearscore += item.GearScore;
                         }
-                        character.GearScore = Math.ceil(gearscore);
-                        resolve(character);
-                        db.close();
                     });
+
+                    // Probably a warrior with Titan's Grip
+                    if (weapons.length == 2) {
+                        gearscore += Math.floor(((weapons[0] + weapons[1]) / 2));
+                    } else if (weapons.length == 1) {
+                        gearscore += weapons[0];
+                    }
+                    character.GearScore = Math.ceil(gearscore);
+                    resolve(character);
+                    await client.close();
                 } else {
                     msg.channel.send(`${getCamelToe(name)} does not have any items equipped. Maybe you typed the wrong name?`);
                 }
@@ -274,34 +275,32 @@ function getGems(realm, name, professions) {
                 i++;
             });
 
-            MongoClient.connect(url, (err, db) => {
-                    if (err) {
-                        console.log(err);
-                    }
-                    db.db(process.env.mongo_database).collection("items").find({$or: itemIDs}).toArray((err, items) => {
-                        items.forEach(item => {
-                            let foundItem = actualItems.filter(x => x.itemID == item.itemID)[0];
-                            let hasBlacksmithing = professions.map(prof => prof.name).includes("Blacksmithing");
-                            let itsGlovesOrBracer = (foundItem.type == "Gloves" || foundItem.type == "Bracer");
+            MongoClient.connect(url).then(async client => {
+                const itemsDB = client.db(process.env.mongo_database).collection("items");
+                const cursor = itemsDB.find({$or: itemIDs});
+                const items = await cursor.toArray();
 
-                            if (foundItem.type == "Belt" || (itsGlovesOrBracer && hasBlacksmithing)) {
-                                if ((item.gems + 1) != foundItem.gems) {
-                                    missingGems.push(foundItem.type);
-                                }
-                            }
-                            else if (item.gems > foundItem.gems) {
-                                missingGems.push(foundItem.type);
-                            }
+                items.forEach(item => {
+                    let foundItem = actualItems.filter(x => x.itemID == item.itemID)[0];
+                    let hasBlacksmithing = professions.map(prof => prof.name).includes("Blacksmithing");
+                    let itsGlovesOrBracer = (foundItem.type == "Gloves" || foundItem.type == "Bracer");
 
-                        });
-                        if (missingGems.length === 0) {
-                            resolve(`${getCamelToe(name)} has gemmed all his items!`);
-                        } else {
-                            resolve(`${getCamelToe(name)} needs to gem ${missingGems.join(", ")}`);
+                    if (foundItem.type == "Belt" || (itsGlovesOrBracer && hasBlacksmithing)) {
+                        if ((item.gems + 1) != foundItem.gems) {
+                            missingGems.push(foundItem.type);
                         }
-                        db.close();
-                    });
+                    } else if (item.gems > foundItem.gems) {
+                        missingGems.push(foundItem.type);
+                    }
+
                 });
+                if (missingGems.length === 0) {
+                    resolve(`${getCamelToe(name)} has gemmed all his items!`);
+                } else {
+                    resolve(`${getCamelToe(name)} needs to gem ${missingGems.join(", ")}`);
+                }
+                await client.close();
+            });
         });
     });
 }
