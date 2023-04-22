@@ -24,8 +24,8 @@ client.on('messageCreate', msgIn => {
             const realms = ["Icecrown", "Lordaeron", "Frostmourne", "Blackrock"]
 
             let command = msg.content.split(" ")[0].substring(1);
-            let name = getCamelToe(msg.content.split(" ")[1]);
-            let realm = getCamelToe(msg.content.split(" ")[2] == null ? realms[0] : msg.content.split(" ")[2]);
+            let name = msg.content.split(" ")[1] != undefined ? getCamelToe(msg.content.split(" ")[1]) : null;
+            let realm = msg.content.split(" ")[2] != undefined ? getCamelToe(msg.content.split(" ")[2]) : realms[0];
 
             const commands = {
                 "help": () => {
