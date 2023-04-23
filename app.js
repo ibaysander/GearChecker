@@ -184,11 +184,12 @@ async function getGearScore(realm, name) {
                     const items = await cursor.toArray();
 
                     let weapons = [];
+                    const hunterWeaponTypes = [13, 17, 21, 22 ]
 
                     items.forEach(item => {
                         if (character.class == "Hunter" && item.type == 26) {
                             gearscore += item.GearScore * 5.3224;
-                        } else if (character.class == "Hunter" && item.type == 17) {
+                        } else if (character.class == "Hunter" && hunterWeaponTypes.indexOf(item.type) > -1) {
                             gearscore += item.GearScore * 0.3164;
                         } else if (item.class === 2 && (item.subclass === 1 || item.subclass === 5 || item.subclass === 8)) {
                             weapons.push(item.GearScore);
