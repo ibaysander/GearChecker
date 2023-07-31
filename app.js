@@ -169,24 +169,24 @@ async function getGearScore(realm, name) {
     return new Promise((resolve) => {
         character.request.then(_ => {
             MongoClient.connect(url).then(async client => {
-                const itemsDB = client.db(process.env.mongo_database).collection("items");
+                const warmaneDB = client.db(process.env.mongo_database).collection("items");
 
                 if (character.equipment && character.equipment.length > 0) {
-                    var itemsToFind = [];
+                    var equippedItems = [];
 
                     character.equipment.forEach(item => {
-                        itemsToFind.push({
+                        equippedItems.push({
                             "itemID": Number(item.item)
                         });
                     });
 
-                    const cursor = itemsDB.find({$or: itemsToFind});
-                    const items = await cursor.toArray();
-
-                    let weapons = [];
+                    const itemsDB = await warmaneDB.find({$or: equippedItems}).toArray();
                     const hunterWeaponTypes = [13, 17, 21, 22 ]
+                    let weapons = [];
 
-                    items.forEach(item => {
+                    equippedItems.forEach(equippedItem => {
+                        const item = itemsDB.find(element => element.itemID == equippedItem.itemID);
+                        
                         if (character.class == "Hunter" && item.type == 26) {
                             gearscore += item.GearScore * 5.3224;
                         } else if (character.class == "Hunter" && hunterWeaponTypes.indexOf(item.type) > -1) {
