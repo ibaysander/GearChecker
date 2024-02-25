@@ -9,14 +9,39 @@ let msg;
 client.on('ready', () => {
     console.log(`[${new Date().toLocaleString()}]:> Logged in as ${client.user.tag}!`);
 
-    const character = CharacterManager.GetGems("Icecrown", "Naabb");
+    CharacterManager.GetCharacter("Icecrown", "Naabb")
+        .then(character => {
+            CharacterManager.GetGearScore(character)
+                .then(result => {
+                    console.log(result);
+                })
+                .catch(err => {
+                    console.error(err.message);
+                });
+            CharacterManager.GetGems(character)
+                .then(result => {
+                    console.log(result);
+                })
+                .catch(err => {
+                    console.error(err.message);
+                });
+            CharacterManager.GetEnchants(character)
+                .then(result => {
+                    console.log(result);
+                })
+                .catch(err => {
+                    console.error(err.message);
+                });
+            CharacterManager.GetGuild(character)
+                .then(result => {
+                    console.log(result);
+                })
+                .catch(err => {
+                    console.error(err.message);
+                });
 
-    character
-        .then(result => {
-            console.log(result);
-        })
-        .catch(err => {
-            console.error(err.message);
+            console.log(CharacterManager.GetArmory(character));
+            console.log(CharacterManager.GetTalents(character));
         });
 });
 
