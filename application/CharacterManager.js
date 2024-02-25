@@ -79,10 +79,21 @@ async function GetGearScore(realm, name) {
     });
 }
 
-function GetGems(realm, name, professions) {
-    const itemNames = ["Head", "Neck", "", "", "", "", "", "", "", "", "",
-        "", "", "", "", "", "", "", ""];
+function GetCharacter(realm, name) {
+    let character = new Character(realm, name);
 
+    return new Promise((resolve, reject) => {
+        character.request
+            .then(_ => {
+                resolve(character);
+            })
+            .catch(_ => {
+                reject(new Error(`Couldn't load character ${name} from realm ${realm}`));
+            });
+    })
+}
+
+function GetGems(realm, name, professions) {
     const options = {
         uri: `http://armory.warmane.com/character/${GetCamelToe(name)}/${realm}/`,
         transform: function (body) {
@@ -103,7 +114,7 @@ function GetGems(realm, name, professions) {
                     let rel = $(this).attr("rel");
 
                     if (rel) {
-                        var params = GetCamelToe(rel);
+                        var params = GetParams(rel);
 
                         if (params["gems"]) amount = params["gems"].split(":").filter(x => x != 0).length;
 
