@@ -4,6 +4,8 @@ const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_
 const crypto = require('crypto');
 const CharacterManager = require('./application/CharacterManager')
 const { GetCamelToe } = require('./common/helpers/GenericHelper')
+const { RealmEnum } = require('./domain/enums/RealmEnum')
+const CommandInfo = require('./common/constants/CommandInfo')
 
 let msg;
 
@@ -54,43 +56,25 @@ client.on('messageCreate', msgIn => {
         if (msg.content[0] === "!") {
             console.log(`[${new Date().toLocaleString()}: ${guid}]:> ${msg.content}`);
 
-            const realms = ["Icecrown", "Lordaeron", "Frostmourne", "Blackrock"]
-
             let command = msg.content.split(" ")[0].substring(1);
-            let name = msg.content.split(" ")[1] != undefined ? GetCamelToe(msg.content.split(" ")[1]) : null;
-            let realm = msg.content.split(" ")[2] != undefined ? GetCamelToe(msg.content.split(" ")[2]) : realms[0];
+            let name = msg.content.split(" ")[1] !== undefined ? msg.content.split(" ")[1] : null;
+            let realm = msg.content.split(" ")[2] !== undefined ? msg.content.split(" ")[2] : RealmEnum[0];
+
+            if (command === "help") msg.channel.send(CommandInfo.Help);
+            else {
+                switch(command) {
+                    case "guild":
+                        CharacterManager.GetGuild(realm, name).then(message => {
+                            msg.channel.send(message);
+                        });
+                }
+            }
+
 
             const commands = {
                 "help": () => {
-                    msg.channel.send(`
-**Info**:
-            **Hello! I'm Snuske's child! I now officially support Lordaeron and other WotLK Warmane realms! 
-            The usage is the same as before but you can add the realm after your character's name. 
-            But if you don't I'll search in Icecrown as the default realm.**                
-                
-**Supported commands**:
-            **!help**: Displays this help text.
-            **!guild [player_name] [realm?]**: Displays the gild of the player.
-            **!gs [player_name] [realm?]**: Displays the GearScore of the player. 
-            **!ench [player_name] [realm?]**: Displays which enchants are missing from the player's currently equipped items.
-            **!gems [player_name] [realm?]**: Displays which gems are missing from the player's currently equipped items.
-            **!armory [player_name] [realm?]**: Returns a link to the player's armory.
-            **!summary [player_name] [realm?]**: Lists all the details regarding the given player.
-            
-            **[realm?]** is an optional parameter. By default = Icecrown.
-            
-**Example of usage**:
-            !summary Metalforce Icecrown
-            !guild Metalforce
-            !gs Metalforce
-            !summary Koch Lordaeron
-            !gs Koch Lordaeron
-                 `)
                 },
                 "guild": () => {
-                    getGuild(realm, name).then(message => {
-                        msg.channel.send(message);
-                    });
                 },
                 "gs": () => {
                     getGearScore(realm, name).then(character => {
@@ -109,11 +93,6 @@ client.on('messageCreate', msgIn => {
                 },
                 "armory": () => {
                     getArmory(realm, name).then(message => {
-                        msg.channel.send(message);
-                    })
-                },
-                "test": () => {
-                    getAchievements(realm, name).then(message => {
                         msg.channel.send(message);
                     })
                 },
@@ -143,21 +122,17 @@ client.on('messageCreate', msgIn => {
                 }
             }
 
-            if (typeof commands[command] === "function" && realms.includes(realm)) {
+            if (typeof commands[command] === "function" && Object.values(RealmEnum).includes(realm)) {
                 //If the command sent is actually a command, execute it!
                 commands[command]();
             }
             else {
-                msg.channel.send(`
-**Invalid command**: 
-            ${msg.content}
-            
-Please execute the !help command to see the list of supported commands and an example of usage.`)
+                msg.channel.send(CommandInfo.InvalidCommand);
             }
         }
     }
     catch (e){
-        console.log(`[${new Date().toLocaleString()}: ${guid}]:> ${e.message}`);
+        console.error(`[${new Date().toLocaleString()}: ${guid}]:> ${e.message}`);
     }
 });
 

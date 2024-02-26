@@ -35,6 +35,7 @@ function ItemTypeEnumToString(value) {
             return key;
         }
     }
+
     return "Unknown";
 }
 
