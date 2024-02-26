@@ -26,10 +26,10 @@ async function GetCharacter(realm, name) {
     })
 }
 
-async function GetGearScore(character) {
+function GetGearScore(character) {
     let gearScore = 0;
 
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
         if (character.equipment && character.equipment.length > 0) {
             let equippedItems = [];
             character.PVPGear = [];
@@ -38,7 +38,7 @@ async function GetGearScore(character) {
                 equippedItems.push(Number(item.item));
             });
 
-            await GetItems(equippedItems, (err, itemsDB) => {
+            GetItems(equippedItems, (err, itemsDB) => {
                 if (err) {
                     console.error("Error:", err);
                     return;
@@ -87,7 +87,7 @@ async function GetGearScore(character) {
     });
 }
 
-async function GetGems(character) {
+function GetGems(character) {
     const options = {
         uri: `http://armory.warmane.com/character/${character.name}/${character.realm}/`,
         transform: function (body) {
@@ -95,7 +95,7 @@ async function GetGems(character) {
         }
     };
 
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
         let equippedItems = [];
         let actualItems = [];
         let i = 0;
@@ -158,7 +158,7 @@ async function GetGems(character) {
     });
 }
 
-async function GetEnchants(character) {
+function GetEnchants(character) {
     const bannedItems = [1, 5, 6, 9, 14, 15];
     let missingEnchants = [];
 
@@ -169,7 +169,7 @@ async function GetEnchants(character) {
         }
     };
 
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
         request(options).then(($) => {
             var items = [];
             var characterClass = $(".level-race-class").text().toLowerCase();
