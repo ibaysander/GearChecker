@@ -18,7 +18,14 @@ class Character {
             this.race = body.race;
             this.talents = body.talents;
             this.professions = body.professions;
+
+            // Calculated
             this.GearScore = 0;
+            this.Enchants = null;
+            this.Gems = null;
+            this.Armory = `http://armory.warmane.com/character/${this.name}/${this.realm}/`;
+            this.Talents = null;
+            this.Summary = null;
         });
     }
 }

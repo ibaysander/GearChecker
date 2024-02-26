@@ -6,12 +6,18 @@ const { ItemTypeEnum, ItemTypeEnumToString } = require('../domain/enums/ItemType
 const { WarmaneItemTypeEnum } = require('../domain/enums/WarmaneItemTypeEnum')
 const { GetCamelToe, GetParams } = require('../common/helpers/GenericHelper')
 
-function GetCharacter(realm, name) {
+async function GetCharacter(realm, name) {
     let character = new Character(GetCamelToe(realm), GetCamelToe(name));
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         character.request
-            .then(_ => {
+            .then(async _ => {
+                await GetGearScore(character);
+                await GetEnchants(character);
+                await GetGems(character);
+                await GetTalents(character);
+                await GetSummary(character);
+
                 resolve(character);
             })
             .catch(_ => {
@@ -20,10 +26,10 @@ function GetCharacter(realm, name) {
     })
 }
 
-function GetGearScore(character) {
+async function GetGearScore(character) {
     let gearScore = 0;
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         if (character.equipment && character.equipment.length > 0) {
             let equippedItems = [];
             character.PVPGear = [];
@@ -32,7 +38,7 @@ function GetGearScore(character) {
                 equippedItems.push(Number(item.item));
             });
 
-            GetItems(equippedItems, (err, itemsDB) => {
+            await GetItems(equippedItems, (err, itemsDB) => {
                 if (err) {
                     console.error("Error:", err);
                     return;
@@ -50,7 +56,7 @@ function GetGearScore(character) {
                 equippedItems.forEach(equippedItem => {
                     const item = itemsDB.find(element => element.itemID === equippedItem);
 
-                    if(item.PVP === 1) {
+                    if (item.PVP === 1) {
                         character.PVPGear.push(item.name + " (" + ItemTypeEnumToString(item.type) + ")");
                     }
 
@@ -72,7 +78,8 @@ function GetGearScore(character) {
                     gearScore += weapons[0];
                 }
                 character.GearScore = Math.ceil(gearScore);
-                resolve(character);
+
+                resolve(character.GearScore);
             });
         } else {
             reject(new Error(`${character.name} does not have any items equipped. Maybe you typed the wrong name?`));
@@ -80,7 +87,7 @@ function GetGearScore(character) {
     });
 }
 
-function GetGems(character) {
+async function GetGems(character) {
     const options = {
         uri: `http://armory.warmane.com/character/${character.name}/${character.realm}/`,
         transform: function (body) {
@@ -88,7 +95,7 @@ function GetGems(character) {
         }
     };
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         let equippedItems = [];
         let actualItems = [];
         let i = 0;
@@ -137,14 +144,13 @@ function GetGems(character) {
                         }
 
                     });
-                    if (missingGems.length === 0) {
-                        resolve(`${character.name} has gemmed all his items!`);
-                    } else {
-                        resolve(`${character.name} needs to gem ${missingGems.join(", ")}`);
-                    }
+                    if (missingGems.length === 0) character.Gems = `${character.name} has gemmed all his items!`;
+                    else character.Gems = `${character.name} needs to gem ${missingGems.join(", ")}`;
+
+                    resolve(character.Gems);
                 });
             })
-            .catch((err) => {
+            .catch(err => {
                 console.error(err.message);
 
                 reject(new Error("Couldn't connect to the armory"));
@@ -152,7 +158,7 @@ function GetGems(character) {
     });
 }
 
-function GetEnchants(character) {
+async function GetEnchants(character) {
     const bannedItems = [1, 5, 6, 9, 14, 15];
     let missingEnchants = [];
 
@@ -163,7 +169,7 @@ function GetEnchants(character) {
         }
     };
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         request(options).then(($) => {
             var items = [];
             var characterClass = $(".level-race-class").text().toLowerCase();
@@ -200,25 +206,13 @@ function GetEnchants(character) {
                     }
                 }
             };
-            if (missingEnchants.length === 0) {
-                resolve(`${character.name} has all enchants!`);
-            } else {
-                resolve(`${character.name} is missing enchants from: ${missingEnchants.join(", ")}`);
-            }
+
+            if (missingEnchants.length === 0) character.Enchants = `${character.name} has all enchants!`;
+            else character.Enchants = `${character.name} is missing enchants from: ${missingEnchants.join(", ")}`;
+
+            resolve(character.Enchants);
         });
     });
-}
-
-function GetGuild(character) {
-    return new Promise((resolve) => {
-        character.request.then(_ => {
-            resolve(character.guild !== undefined ? character.guild : "No guild found");
-        });
-    });
-}
-
-function GetArmory(character) {
-    return `${character.name}'s Armory link: http://armory.warmane.com/character/${character.name}/${character.realm}/`;
 }
 
 function GetTalents(character) {
@@ -236,7 +230,25 @@ function GetTalents(character) {
         }
     }
 
-    return res;
+    character.Talents = res;
 }
 
-module.exports = { GetCharacter, GetGearScore, GetGems, GetEnchants, GetGuild, GetArmory, GetTalents }
+function GetSummary(character) {
+    character.Summary =
+    `
+    Here is a summary for **${character.name}**:
+    **Status**: ${character.online ? "Online" : "Offline"}
+    **Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction}
+    **Guild**: ${character.guild}
+    **Specs**: ${character.Talents}
+    **Professions**: ${character.professions.map(profession => (profession.skill + " " + profession.name)).join(" and ")}
+    **Achievement points**: ${character.achievementpoints}
+    **Honorable kills**: ${character.honorablekills}
+    **GearScore**: ${character.GearScore}
+    **Enchants**: ${character.Enchants}
+    **Gems**: ${character.Gems}
+    **Armory**: ${character.Armory}
+                             `
+}
+
+module.exports = { GetCharacter }

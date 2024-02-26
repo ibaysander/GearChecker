@@ -1,3 +1,13 @@
+const Commands = {
+    help: "!help",
+    guild: "!guild",
+    gs: "!gs",
+    ench: "!ench",
+    gems: "!gems",
+    armory: "!armory",
+    summary: "!summary"
+}
+
 const Help =
 `
 **Info**:
@@ -30,4 +40,4 @@ const InvalidCommand =
                         
 Please execute the !help command to see the list of supported commands and an example of usage.`;
 
-module.exports = { Help, InvalidCommand }
+module.exports = { Help, InvalidCommand, Commands }
