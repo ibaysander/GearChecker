@@ -3,6 +3,7 @@ const { Client, Intents } = require("discord.js");
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 const crypto = require('crypto');
 const CharacterManager = require('./application/CharacterManager')
+const { GetCamelToe } = require('./common/helpers/GenericHelper')
 
 let msg;
 
@@ -56,8 +57,8 @@ client.on('messageCreate', msgIn => {
             const realms = ["Icecrown", "Lordaeron", "Frostmourne", "Blackrock"]
 
             let command = msg.content.split(" ")[0].substring(1);
-            let name = msg.content.split(" ")[1] != undefined ? getCamelToe(msg.content.split(" ")[1]) : null;
-            let realm = msg.content.split(" ")[2] != undefined ? getCamelToe(msg.content.split(" ")[2]) : realms[0];
+            let name = msg.content.split(" ")[1] != undefined ? GetCamelToe(msg.content.split(" ")[1]) : null;
+            let realm = msg.content.split(" ")[2] != undefined ? GetCamelToe(msg.content.split(" ")[2]) : realms[0];
 
             const commands = {
                 "help": () => {
@@ -93,7 +94,7 @@ client.on('messageCreate', msgIn => {
                 },
                 "gs": () => {
                     getGearScore(realm, name).then(character => {
-                        msg.channel.send(`${getCamelToe(name)}'s GearScore is ${character.GearScore}`);
+                        msg.channel.send(`${GetCamelToe(name)}'s GearScore is ${character.GearScore}`);
                     })
                 },
                 "ench": () => {
@@ -122,7 +123,7 @@ client.on('messageCreate', msgIn => {
                             getGems(realm, name, character.professions).then(gems => {
                                 getArmory(realm, name).then(armory => {
                                     msg.channel.send(`
-    Here is a summary for **${getCamelToe(name)}**:
+    Here is a summary for **${GetCamelToe(name)}**:
     **Status**: ${character.online ? "Online" : "Offline"}
     **Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction}
     **Guild**: ${character.guild}

@@ -18,6 +18,7 @@ class Character {
             this.race = body.race;
             this.talents = body.talents;
             this.professions = body.professions;
+            this.GearScore = 0;
         });
     }
 }
