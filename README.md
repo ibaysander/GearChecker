@@ -1,55 +1,47 @@
-# Snuske
+# GearChecker
 A Discord bot for the World of Warcraft server Warmane used by thousands of people worldwide.
 
-Thread on Warmane can be found here: https://forum.warmane.com/showthread.php?t=370139
+This bot is a fork of [Snuske](https://github.com/mortenmoulder/Snuske) with some minor improvements.
+
+Thread on Warmane can be found [here](https://forum.warmane.com/showthread.php?t=370139). 
 
 ## Description
-I made this a few years back (November 2017). I basically made it in a night and published it as a Discord bot, and I never looked back at the code. Today I would've probably rewritten a lot of the functions, because what I have here is really, really ugly. But, it works quite well.
-
-As of 10th of March 2021 at 10:58 PM (hey it's my birthday in an hour) 288.879 commands have been executed by this bot, and over 1200 servers have it installed with 95.000+ members in total.
+A small Discord bot for [Warmane's](https://www.warmane.com/) World of Warcraft that inspects the players' gear and 
+lets them know certain stats and which gems/enchants they are missing.
 
 ## Installation
 To run this on your own server, you need a few things installed first.
 
-* MongoDB
-* NodeJS
-* NPM
+* [NodeJS](https://nodejs.org/en/download).
+* [The latest version of this repository](https://github.com/kikchan/Snuske/archive/refs/heads/main.zip).
+* Any text editor.
 
-Once you have those things installed, clone this repository and restore the dump from the `dump/` directory:
 
-```
-mongorestore -d warmane -c items dump/items.bson
-```
+Then you need to create a Discord application. These are the steps:
+* Go to the [Discord's Developer Portal](https://discord.com/developers/applications).
+* Login.
+* Click on **New Application**.
+* Give it a name, maybe add an app icon and write a description.
+* Grab the token from this page:
 
-The dump contains a list of all World of Warcraft 3.3.5a items, as well as their GearScore, which was calculated by a script I made by reverse engineering the original GearScore AddOn. The items are important, because we actually need some of the item's stats to determine the GearScore (as you can see in the `getGearScore` function).
+![image](https://github.com/kikchan/Snuske/assets/26814080/4804d5d3-7fe8-4fb5-9d49-980947455bfb)
 
-Once the MongoDB database has been restored, you need to open `app.js` and edit a few things. You need the username, the password, and the database name (if you used the `mongorestore` command above, the database will be `warmane`).
 
-Then you need to create a Discord application. I cannot remember exactly what you need to do, but here's a link to the page: https://discord.com/developers/applications
+After that, you're ready to run it. For that, you have to do follow these steps:
+* Edit the *.env* file and paste your token ID like this: discord_bot_id=MTIxMjE2NDQ0NTA0NDg3MTMx...
+* Open the Windows console/Linux terminal from the root folder of the project.
+* Run the command ```npm i```. This will install all the packages of the project.
+* Run GearChecker with this command ```node app.js```.
+* [OPTIONAL] If you want to run this as a services (in the background), you can check out [this package](https://pm2.keymetrics.io/docs/usage/quick-start/).
 
-You need to get the Bot token, which can be found here:
+## Generate a link to invite the bot to your server
+* Head back to the Discord's Developer Portal and navigate to the **OAuth2** page
+* Change the authorization method of the bot to this:
+![image](https://github.com/kikchan/Snuske/assets/26814080/333dd03e-96f3-4f3d-96a9-53e70d69fb3f)
 
-![image](https://user-images.githubusercontent.com/1304665/110703265-d6759c00-81f3-11eb-9ab6-0e79b73eb9af.png)
+* Save the changes.
+* Mark the following checkboxes:
+![image](https://github.com/kikchan/Snuske/assets/26814080/6ffd217a-cb24-4dcf-8422-3e0cf590885f)
 
-and replace that in the `app.js` file as well.
-
-Next, simply install the packages by running:
-
-```
-npm install
-```
-
-Once you're done, run `node app.js` and it will start the bot. I would personally run it as a service, but you can do it however you want.
-
-## Find your bot invitation link
-A regular invitation link looks like this:
-
-```
-https://discordapp.com/oauth2/authorize?&client_id=369568063781339152&scope=bot&permissions=0
-```
-
-If you go to your bot's Discord developer page, you can find the ID for your bot here:
-
-![image](https://user-images.githubusercontent.com/1304665/110704096-d1651c80-81f4-11eb-9fb7-16ffa9a14ba3.png)
-
-Simply replace the `client_id` in the URL with your bot's ID.
+* Voilà! Spread it like Necrotic Plague with your friends!
+![image](https://github.com/kikchan/Snuske/assets/26814080/6136cbd2-c276-4e02-a6d3-7fbd91096933)
