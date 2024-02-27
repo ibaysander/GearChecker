@@ -23,9 +23,10 @@ class Character {
             this.GearScore = 0;
             this.Enchants = null;
             this.Gems = null;
-            this.Armory = `http://armory.warmane.com/character/${this.name}/${this.realm}/`;
+            this.Armory = `[${this.name}](http://armory.warmane.com/character/${this.name}/${this.realm})`;
             this.Talents = null;
             this.Summary = null;
+            this.GuildLink = `[${this.guild}](http://armory.warmane.com/guild/${this.guild.replaceAll(" ", "+")}/${this.realm})`;
         });
     }
 }

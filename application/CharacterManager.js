@@ -1,10 +1,10 @@
 const cheerio = require("cheerio");
 const request = require("request-promise");
-const { GetItems } = require('../infrastructure/ItemManager')
-const { Character } = require('../domain/entities/Character')
-const { ItemTypeEnum, ItemTypeEnumToString } = require('../domain/enums/ItemTypeEnum')
-const { WarmaneItemTypeEnum } = require('../domain/enums/WarmaneItemTypeEnum')
-const { GetCamelToe, GetParams } = require('../common/helpers/GenericHelper')
+const {GetItems} = require('../infrastructure/ItemManager')
+const {Character} = require('../domain/entities/Character')
+const {ItemTypeEnum, ItemTypeEnumToString} = require('../domain/enums/ItemTypeEnum')
+const {WarmaneItemTypeEnum} = require('../domain/enums/WarmaneItemTypeEnum')
+const {GetCamelToe, GetParams} = require('../common/helpers/GenericHelper')
 
 function GetCharacter(realm, name) {
 
@@ -30,61 +30,57 @@ function GetCharacter(realm, name) {
 function GetGearScore(character) {
     let gearScore = 0;
 
-    return new Promise((resolve, reject) => {
-        if (character.equipment && character.equipment.length > 0) {
-            let equippedItems = [];
-            character.PVPGear = [];
+    return new Promise((resolve) => {
+        let equippedItems = [];
+        character.PVPGear = [];
 
-            character.equipment.forEach(item => {
-                equippedItems.push(Number(item.item));
-            });
+        character.equipment.forEach(item => {
+            equippedItems.push(Number(item.item));
+        });
 
-            GetItems(equippedItems, (err, itemsDB) => {
-                if (err) {
-                    console.error("Error:", err);
-                    return;
+        GetItems(equippedItems, (err, itemsDB) => {
+            if (err) {
+                console.error("Error:", err);
+                return;
+            }
+
+            const hunterWeaponTypes =
+                [
+                    ItemTypeEnum["OneHand"],
+                    ItemTypeEnum["TwoHand"],
+                    ItemTypeEnum["MainHand"],
+                    ItemTypeEnum["OffHand"]
+                ];
+            let weapons = [];
+
+            equippedItems.forEach(equippedItem => {
+                const item = itemsDB.find(element => element.itemID === equippedItem);
+
+                if (item.PVP === 1) {
+                    character.PVPGear.push(ItemTypeEnumToString(item.type) + ":\n\t\t\t\t\t" + item.name);
                 }
 
-                const hunterWeaponTypes =
-                    [
-                        ItemTypeEnum["OneHand"],
-                        ItemTypeEnum["TwoHand"],
-                        ItemTypeEnum["MainHand"],
-                        ItemTypeEnum["OffHand"]
-                    ];
-                let weapons = [];
-
-                equippedItems.forEach(equippedItem => {
-                    const item = itemsDB.find(element => element.itemID === equippedItem);
-
-                    if (item.PVP === 1) {
-                        character.PVPGear.push(ItemTypeEnumToString(item.type) + ":\n\t\t\t\t\t" + item.name);
-                    }
-
-                    if (character.class == "Hunter" && item.type == 26) {
-                        gearScore += item.GearScore * 5.3224;
-                    } else if (character.class == "Hunter" && hunterWeaponTypes.indexOf(item.type) > -1) {
-                        gearScore += item.GearScore * 0.3164;
-                    } else if (item.class === 2 && (item.subclass === 1 || item.subclass === 5 || item.subclass === 8)) {
-                        weapons.push(item.GearScore);
-                    } else {
-                        gearScore += item.GearScore;
-                    }
-                });
-
-                // Probably a warrior with Titan's Grip
-                if (weapons.length == 2) {
-                    gearScore += Math.floor(((weapons[0] + weapons[1]) / 2));
-                } else if (weapons.length == 1) {
-                    gearScore += weapons[0];
+                if (character.class == "Hunter" && item.type == 26) {
+                    gearScore += item.GearScore * 5.3224;
+                } else if (character.class == "Hunter" && hunterWeaponTypes.indexOf(item.type) > -1) {
+                    gearScore += item.GearScore * 0.3164;
+                } else if (item.class === 2 && (item.subclass === 1 || item.subclass === 5 || item.subclass === 8)) {
+                    weapons.push(item.GearScore);
+                } else {
+                    gearScore += item.GearScore;
                 }
-                character.GearScore = Math.ceil(gearScore);
-
-                resolve(character);
             });
-        } else {
-            reject(new Error(`${character.name} does not have any items equipped. Maybe you typed the wrong name?`));
-        }
+
+            // Probably a warrior with Titan's Grip
+            if (weapons.length == 2) {
+                gearScore += Math.floor(((weapons[0] + weapons[1]) / 2));
+            } else if (weapons.length == 1) {
+                gearScore += weapons[0];
+            }
+            character.GearScore = Math.ceil(gearScore);
+
+            resolve(character);
+        });
     });
 }
 
@@ -242,7 +238,7 @@ function GetSummary(character) {
     Here is a summary for **${character.name}**:
     **Status**: ${character.online ? ":green_circle: Online" : ":red_circle: Offline"}
     **Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction + " " + (character.faction === "Alliance" ? ":blue_heart:" : ":heart:")}
-    **Guild**: ${character.guild}
+    **Guild**: ${character.guild ? character.GuildLink : `${character.name} doesn't have a guild`}
     **Specs**: ${character.Talents}
     **Professions**: ${character.professions.map(profession => (profession.skill + " " + profession.name)).join(" and ")}
     **Achievement points**: ${character.achievementpoints}
