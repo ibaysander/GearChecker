@@ -60,9 +60,9 @@ function GetGearScore(character) {
                     character.PVPGear.push(ItemTypeEnumToString(item.type) + ":\n\t\t\t\t\t" + item.name);
                 }
 
-                if (character.class == "Hunter" && item.type == 26) {
+                if (character.class === "Hunter" && item.type === 26) {
                     gearScore += item.GearScore * 5.3224;
-                } else if (character.class == "Hunter" && hunterWeaponTypes.indexOf(item.type) > -1) {
+                } else if (character.class === "Hunter" && hunterWeaponTypes.indexOf(item.type) > -1) {
                     gearScore += item.GearScore * 0.3164;
                 } else if (item.class === 2 && (item.subclass === 1 || item.subclass === 5 || item.subclass === 8)) {
                     weapons.push(item.GearScore);
@@ -72,9 +72,9 @@ function GetGearScore(character) {
             });
 
             // Probably a warrior with Titan's Grip
-            if (weapons.length == 2) {
+            if (weapons.length === 2) {
                 gearScore += Math.floor(((weapons[0] + weapons[1]) / 2));
-            } else if (weapons.length == 1) {
+            } else if (weapons.length === 1) {
                 gearScore += weapons[0];
             }
             character.GearScore = Math.ceil(gearScore);
@@ -128,12 +128,12 @@ function GetGems(character) {
                     }
 
                     itemsDB.forEach(item => {
-                        let foundItem = actualItems.filter(x => x.itemID == item.itemID)[0];
+                        let foundItem = actualItems.filter(x => x.itemID === item.itemID)[0];
                         let hasBlacksmithing = character.professions.map(prof => prof.name).includes("Blacksmithing");
-                        let itsGlovesOrBracer = (foundItem.type == "Gloves" || foundItem.type == "Bracer");
+                        let itsGlovesOrBracer = (foundItem.type === "Gloves" || foundItem.type === "Bracer");
 
-                        if (foundItem.type == "Belt" || (itsGlovesOrBracer && hasBlacksmithing)) {
-                            if ((item.gems + 1) != foundItem.gems) {
+                        if (foundItem.type === "Belt" || (itsGlovesOrBracer && hasBlacksmithing)) {
+                            if ((item.gems + 1) !== foundItem.gems) {
                                 missingGems.push(foundItem.type);
                             }
                         } else if (item.gems > foundItem.gems) {
@@ -176,11 +176,11 @@ function GetEnchants(character) {
             });
             $(".item-model a").each(function () {
                 $(this).attr("href");
-                var rel = $(this).attr("rel");
+                let rel = $(this).attr("rel");
                 items.push(rel);
             });
 
-            for (i = 0; i < items.length; i++) {
+            for (let i = 0; i < items.length; i++) {
                 if (items[i]) {
                     if (!bannedItems.includes(i)) {
                         if (items[i].indexOf("ench") === -1) {
@@ -202,7 +202,7 @@ function GetEnchants(character) {
                         }
                     }
                 }
-            };
+            }
 
             if (missingEnchants.length === 0) character.Enchants = `${character.name} has all enchants!`;
             else character.Enchants = `${character.name} is missing enchants from: ${missingEnchants.join(", ")}`;
