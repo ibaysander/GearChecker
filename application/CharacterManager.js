@@ -6,10 +6,11 @@ const { ItemTypeEnum, ItemTypeEnumToString } = require('../domain/enums/ItemType
 const { WarmaneItemTypeEnum } = require('../domain/enums/WarmaneItemTypeEnum')
 const { GetCamelToe, GetParams } = require('../common/helpers/GenericHelper')
 
-async function GetCharacter(realm, name) {
-    let character = new Character(GetCamelToe(realm), GetCamelToe(name));
+function GetCharacter(realm, name) {
 
-    return new Promise(async (resolve, reject) => {
+    return new Promise(async (resolve) => {
+        let character = new Character(GetCamelToe(realm), GetCamelToe(name));
+
         character.request
             .then(async _ => {
                 await GetGearScore(character);
@@ -20,8 +21,8 @@ async function GetCharacter(realm, name) {
 
                 resolve(character);
             })
-            .catch(_ => {
-                reject(new Error(`Couldn't load character ${name} from realm ${realm}`));
+            .catch(err => {
+                console.error(err);
             });
     })
 }
@@ -57,7 +58,7 @@ function GetGearScore(character) {
                     const item = itemsDB.find(element => element.itemID === equippedItem);
 
                     if (item.PVP === 1) {
-                        character.PVPGear.push(item.name + " (" + ItemTypeEnumToString(item.type) + ")");
+                        character.PVPGear.push(ItemTypeEnumToString(item.type) + ":\n\t\t\t\t\t" + item.name);
                     }
 
                     if (character.class == "Hunter" && item.type == 26) {
@@ -79,7 +80,7 @@ function GetGearScore(character) {
                 }
                 character.GearScore = Math.ceil(gearScore);
 
-                resolve(character.GearScore);
+                resolve(character);
             });
         } else {
             reject(new Error(`${character.name} does not have any items equipped. Maybe you typed the wrong name?`));
@@ -169,16 +170,16 @@ function GetEnchants(character) {
         }
     };
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         request(options).then(($) => {
-            var items = [];
-            var characterClass = $(".level-race-class").text().toLowerCase();
+            let items = [];
+            let characterClass = $(".level-race-class").text().toLowerCase();
             let professions = [];
-            $(".profskills").find(".text").each(function (profession) {
+            $(".profskills").find(".text").each(function () {
                 professions.push($(this).clone().children().remove().end().text().trim());
             });
             $(".item-model a").each(function () {
-                var item = $(this).attr("href");
+                $(this).attr("href");
                 var rel = $(this).attr("rel");
                 items.push(rel);
             });
@@ -186,7 +187,7 @@ function GetEnchants(character) {
             for (i = 0; i < items.length; i++) {
                 if (items[i]) {
                     if (!bannedItems.includes(i)) {
-                        if (items[i].indexOf("ench") == -1) {
+                        if (items[i].indexOf("ench") === -1) {
                             if (WarmaneItemTypeEnum[i] === "Ranged") {
                                 if (characterClass.indexOf("hunter") >= 0) {
                                     missingEnchants.push(WarmaneItemTypeEnum[i]);
@@ -220,7 +221,7 @@ function GetTalents(character) {
 
     if (character.talents != null) {
         for (let i=0; i < character.talents.length; i++) {
-            if (i == 1) res += " and ";
+            if (i === 1) res += " and ";
 
             res += character.talents[i].tree;
 
@@ -234,11 +235,13 @@ function GetTalents(character) {
 }
 
 function GetSummary(character) {
+    const pvpGearPattern = "\n\t\t:exclamation:";
+
     character.Summary =
     `
     Here is a summary for **${character.name}**:
-    **Status**: ${character.online ? "Online" : "Offline"}
-    **Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction}
+    **Status**: ${character.online ? ":green_circle: Online" : ":red_circle: Offline"}
+    **Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction + " " + (character.faction === "Alliance" ? ":blue_heart:" : ":heart:")}
     **Guild**: ${character.guild}
     **Specs**: ${character.Talents}
     **Professions**: ${character.professions.map(profession => (profession.skill + " " + profession.name)).join(" and ")}
@@ -248,7 +251,8 @@ function GetSummary(character) {
     **Enchants**: ${character.Enchants}
     **Gems**: ${character.Gems}
     **Armory**: ${character.Armory}
-                             `
+    **PVP items**: ${character.PVPGear.length === 0 ? "None" : pvpGearPattern + character.PVPGear.join(pvpGearPattern)}
+    `
 }
 
 module.exports = { GetCharacter }

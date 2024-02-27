@@ -18,7 +18,7 @@ client.on('messageCreate', msgIn => {
 
     try {
         if (msg.content[0] === "!") {
-            console.log(`[${new Date().toLocaleString()}: ${guid}]:> ${msg.content}`);
+            console.log(`[${new Date().toLocaleString()}]:> ${msg.content}`);
 
             let command = msg.content.split(" ")[0];
             let name = msg.content.split(" ")[1] !== undefined ? msg.content.split(" ")[1] : null;
@@ -30,21 +30,33 @@ client.on('messageCreate', msgIn => {
                 .then(character => {
                     switch (command) {
                         case CommandInfo.Commands.guild:
-                                msg.channel.send(character.guild);
-                                break;
+                            msg.channel.send(character.guild);
+                            break;
+                        case CommandInfo.Commands.gs:
+                            msg.channel.send(character.GearScore);
+                            break;
+                        case CommandInfo.Commands.ench:
+                            msg.channel.send(character.Enchants);
+                            break;
+                        case CommandInfo.Commands.gems:
+                            msg.channel.send(character.Gems);
+                            break;
+                        case CommandInfo.Commands.armory:
+                            msg.channel.send(character.Armory);
+                            break;
                         case CommandInfo.Commands.summary:
                             msg.channel.send(character.Summary);
                             break;
                     }
                 })
                 .catch(err => {
-
+                    console.error(err);
                 });
             }
             else msg.channel.send(CommandInfo.InvalidCommand);
         }
     }
-    catch (e){
+    catch (e) {
         console.error(`[${new Date().toLocaleString()}: ${guid}]:> ${e.message}`);
     }
 });
