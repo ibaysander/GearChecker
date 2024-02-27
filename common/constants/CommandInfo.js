@@ -32,6 +32,8 @@ const Help =
             !gs Metalforce
             !summary Koch Lordaeron
             !gs Koch Lordaeron
+            
+**Feel free to join the official Discord server of the bot [here](https://discord.gg/ZSDpeftAB7) and ask/suggest me anything!**
 `;
 
 const InvalidCommand =
