@@ -15,7 +15,6 @@
         "pm2": "^5.2.2",
         "request": "2.88.2",
         "request-promise": "^4.2.6",
-        "selenium-webdriver": "^4.7.0",
         "sqlite3": "^5.1.7"
     }
 }
