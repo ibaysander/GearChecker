@@ -45,3 +45,27 @@ After that, you're ready to run it. For that, you have to do follow these steps:
 
 * Voilà! Spread it like Necrotic Plague with your friends!
 ![image](https://github.com/kikchan/Snuske/assets/26814080/6136cbd2-c276-4e02-a6d3-7fbd91096933)
+
+## Bot usage
+
+Supported commands:
+* !help: Displays this help text.
+* !guild [player_name] [realm?]: Displays the gild of the player.
+* !gs [player_name] [realm?]: Displays the GearScore of the player.
+* !ench [player_name] [realm?]: Displays which enchants are missing from the player's currently equipped items.
+* !gems [player_name] [realm?]: Displays which gems are missing from the player's currently equipped items.
+* !armory [player_name] [realm?]: Returns a link to the player's armory.
+* !summary [player_name] [realm?]: Lists all the details regarding the given player.
+
+[realm?] is an optional parameter. By default = Icecrown.
+
+Example of usage:
+* !summary Metalforce Icecrown
+* !guild Metalforce
+* !gs Metalforce
+* !summary Koch Lordaeron
+* !gs Koch Lordaeron
+
+![image](https://github.com/kikchan/Snuske/assets/26814080/60c1ef60-fa1a-443f-90c2-9db94f4bb28a)
+
+Feel free to join the [official Discord server](https://discord.gg/ZSDpeftAB7) of the bot here and ask/suggest me anything!
