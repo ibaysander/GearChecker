@@ -4,6 +4,8 @@ class Character {
     constructor(realm, charName) {
         this.request = request(`http://armory.warmane.com/api/character/${charName}/${realm}/`, (err, response, body) => {
             body = JSON.parse(body);
+
+            this.valid = false;
             this.name = body.name;
             this.realm = body.realm;
             this.online = body.online;
@@ -19,14 +21,19 @@ class Character {
             this.talents = body.talents;
             this.professions = body.professions;
 
+            if (body && body.name) this.valid = true;
+
             // Calculated
             this.GearScore = 0;
             this.Enchants = null;
             this.Gems = null;
-            this.Armory = `[${this.name}](http://armory.warmane.com/character/${this.name}/${this.realm})`;
+            this.Armory = `[${charName}](http://armory.warmane.com/character/${charName}/${realm})`;
             this.Talents = null;
             this.Summary = null;
-            this.GuildLink = `[${this.guild}](http://armory.warmane.com/guild/${this.guild.replaceAll(" ", "+")}/${this.realm})`;
+            this.GuildLink = this.guild ?
+                `[${this.guild}](http://armory.warmane.com/guild/${this.guild.replaceAll(" ", "+")}/${realm})` :
+                null;
+            this.PVPGear = [];
         });
     }
 }

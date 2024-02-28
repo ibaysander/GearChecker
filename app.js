@@ -56,6 +56,8 @@ client.on('messageCreate', msgIn => {
                 })
                 .catch(err => {
                     console.error(err);
+
+                    msg.channel.send(err);
                 });
             }
             else msg.channel.send(CommandInfo.InvalidCommand);

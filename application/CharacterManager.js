@@ -7,19 +7,21 @@ const {WarmaneItemTypeEnum} = require('../domain/enums/WarmaneItemTypeEnum')
 const {GetCamelToe, GetParams} = require('../common/helpers/GenericHelper')
 
 function GetCharacter(realm, name) {
-
-    return new Promise(async (resolve) => {
+    return new Promise(async (resolve, reject) => {
         let character = new Character(GetCamelToe(realm), GetCamelToe(name));
 
         character.request
             .then(async _ => {
-                await GetGearScore(character);
-                await GetEnchants(character);
-                await GetGems(character);
-                await GetTalents(character);
-                await GetSummary(character);
+                if (character.valid) {
+                    await GetGearScore(character);
+                    await GetEnchants(character);
+                    await GetGems(character);
+                    await GetTalents(character);
+                    await GetSummary(character);
 
-                resolve(character);
+                    resolve(character);
+                }
+                else reject(`Unfortunately, Warmane's API doesn't return any information about ${name} from realm ${realm}`);
             })
             .catch(err => {
                 console.error(err);
@@ -30,58 +32,59 @@ function GetCharacter(realm, name) {
 function GetGearScore(character) {
     let gearScore = 0;
 
-    return new Promise((resolve) => {
-        let equippedItems = [];
-        character.PVPGear = [];
+    if (character && character.equipment && character.equipment.length > 0) {
+        return new Promise((resolve) => {
+            let equippedItems = [];
 
-        character.equipment.forEach(item => {
-            equippedItems.push(Number(item.item));
-        });
-
-        GetItems(equippedItems, (err, itemsDB) => {
-            if (err) {
-                console.error("Error:", err);
-                return;
-            }
-
-            const hunterWeaponTypes =
-                [
-                    ItemTypeEnum["OneHand"],
-                    ItemTypeEnum["TwoHand"],
-                    ItemTypeEnum["MainHand"],
-                    ItemTypeEnum["OffHand"]
-                ];
-            let weapons = [];
-
-            equippedItems.forEach(equippedItem => {
-                const item = itemsDB.find(element => element.itemID === equippedItem);
-
-                if (item.PVP === 1) {
-                    character.PVPGear.push(ItemTypeEnumToString(item.type) + ":\n\t\t\t\t\t" + item.name);
-                }
-
-                if (character.class === "Hunter" && item.type === 26) {
-                    gearScore += item.GearScore * 5.3224;
-                } else if (character.class === "Hunter" && hunterWeaponTypes.indexOf(item.type) > -1) {
-                    gearScore += item.GearScore * 0.3164;
-                } else if (item.class === 2 && (item.subclass === 1 || item.subclass === 5 || item.subclass === 8)) {
-                    weapons.push(item.GearScore);
-                } else {
-                    gearScore += item.GearScore;
-                }
+            character.equipment.forEach(item => {
+                equippedItems.push(Number(item.item));
             });
 
-            // Probably a warrior with Titan's Grip
-            if (weapons.length === 2) {
-                gearScore += Math.floor(((weapons[0] + weapons[1]) / 2));
-            } else if (weapons.length === 1) {
-                gearScore += weapons[0];
-            }
-            character.GearScore = Math.ceil(gearScore);
+            GetItems(equippedItems, (err, itemsDB) => {
+                if (err) {
+                    console.error("Error:", err);
+                    return;
+                }
 
-            resolve(character);
+                const hunterWeaponTypes =
+                    [
+                        ItemTypeEnum["OneHand"],
+                        ItemTypeEnum["TwoHand"],
+                        ItemTypeEnum["MainHand"],
+                        ItemTypeEnum["OffHand"]
+                    ];
+                let weapons = [];
+
+                equippedItems.forEach(equippedItem => {
+                    const item = itemsDB.find(element => element.itemID === equippedItem);
+
+                    if (item.PVP === 1) {
+                        character.PVPGear.push(ItemTypeEnumToString(item.type) + ":\n\t\t\t\t\t" + item.name);
+                    }
+
+                    if (character.class === "Hunter" && item.type === 26) {
+                        gearScore += item.GearScore * 5.3224;
+                    } else if (character.class === "Hunter" && hunterWeaponTypes.indexOf(item.type) > -1) {
+                        gearScore += item.GearScore * 0.3164;
+                    } else if (item.class === 2 && (item.subclass === 1 || item.subclass === 5 || item.subclass === 8)) {
+                        weapons.push(item.GearScore);
+                    } else {
+                        gearScore += item.GearScore;
+                    }
+                });
+
+                // Probably a warrior with Titan's Grip
+                if (weapons.length === 2) {
+                    gearScore += Math.floor(((weapons[0] + weapons[1]) / 2));
+                } else if (weapons.length === 1) {
+                    gearScore += weapons[0];
+                }
+                character.GearScore = Math.ceil(gearScore);
+
+                resolve(character);
+            });
         });
-    });
+    }
 }
 
 function GetGems(character) {
@@ -129,7 +132,9 @@ function GetGems(character) {
 
                     itemsDB.forEach(item => {
                         let foundItem = actualItems.filter(x => x.itemID === item.itemID)[0];
-                        let hasBlacksmithing = character.professions.map(prof => prof.name).includes("Blacksmithing");
+                        let hasBlacksmithing = character && character.professions && character.professions.length > 0 ?
+                            character.professions.map(prof => prof.name).includes("Blacksmithing") :
+                            false;
                         let itsGlovesOrBracer = (foundItem.type === "Gloves" || foundItem.type === "Bracer");
 
                         if (foundItem.type === "Belt" || (itsGlovesOrBracer && hasBlacksmithing)) {
@@ -240,7 +245,7 @@ function GetSummary(character) {
     **Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction + " " + (character.faction === "Alliance" ? ":blue_heart:" : ":heart:")}
     **Guild**: ${character.guild ? character.GuildLink : `${character.name} doesn't have a guild`}
     **Specs**: ${character.Talents}
-    **Professions**: ${character.professions.map(profession => (profession.skill + " " + profession.name)).join(" and ")}
+    **Professions**: ${character.professions ? character.professions.map(profession => (profession.skill + " " + profession.name)).join(" and ") : "No professions to show"}
     **Achievement points**: ${character.achievementpoints}
     **Honorable kills**: ${character.honorablekills}
     **GearScore**: ${character.GearScore}
