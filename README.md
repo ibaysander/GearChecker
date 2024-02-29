@@ -32,7 +32,7 @@ After that, you're ready to run it. For that, you have to do follow these steps:
 * Open the Windows console/Linux terminal from the root folder of the project.
 * Run the command ```npm i```. This will install all the packages of the project.
 * Run GearChecker with this command ```node app.js```.
-* [OPTIONAL] If you want to run this as a services (in the background), you can check out [this package](https://pm2.keymetrics.io/docs/usage/quick-start/).
+* [OPTIONAL] If you want to run this as a service (in the background), you can check out [this package](https://pm2.keymetrics.io/docs/usage/quick-start/).
 
 ## Generate a link to invite the bot to your server
 * Head back to the Discord's Developer Portal and navigate to the **OAuth2** page
