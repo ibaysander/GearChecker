@@ -243,7 +243,7 @@ async function GetTalents(character) {
 
 async function GetAchievements(character) {
     try {
-        const line = "+--------+--------+--------+--------+--------+";
+        const line = "+------------+------------+------------+------------+--------------+";
         const options = new firefox.Options();
         options.windowSize({ width: 400, height: 300 });
         options.addArguments('-hideToolbar');
@@ -273,7 +273,7 @@ async function GetAchievements(character) {
         character.Achievements.push(rs);
         character.Achievements.push(line);
 
-        let toc = "|    TOC    ";
+        let toc = "|    TOC   ";
         toc += "|" + await GetSingleAchievement(Achievements.Raids.TOC25HC);
         toc += "|" + await GetSingleAchievement(Achievements.Raids.TOC25);
         toc += "|" + await GetSingleAchievement(Achievements.Raids.TOC10HC);
