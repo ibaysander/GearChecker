@@ -1,12 +1,15 @@
 const cheerio = require("cheerio");
 const request = require("request-promise");
-const {GetItems} = require('../infrastructure/ItemManager')
-const {Character} = require('../domain/entities/Character')
-const {ItemTypeEnum, ItemTypeEnumToString} = require('../domain/enums/ItemTypeEnum')
-const {WarmaneItemTypeEnum} = require('../domain/enums/WarmaneItemTypeEnum')
-const {GetCamelToe, GetParams} = require('../common/helpers/GenericHelper')
-const { Builder, By, Key, until } = require('selenium-webdriver');
+const { GetItems } = require('../infrastructure/ItemManager')
+const { Character } = require('../domain/entities/Character')
+const { ItemTypeEnum, ItemTypeEnumToString } = require('../domain/enums/ItemTypeEnum')
+const { WarmaneItemTypeEnum } = require('../domain/enums/WarmaneItemTypeEnum')
+const { GetCamelToe, GetParams } = require('../common/helpers/GenericHelper')
+const { Builder, By, until } = require('selenium-webdriver');
 const firefox = require('selenium-webdriver/firefox');
+const Achievements = require('../common/constants/Achievements');
+
+let driver;
 
 function GetCharacter(realm, name) {
     return new Promise(async (resolve, reject) => {
@@ -239,42 +242,61 @@ async function GetTalents(character) {
 }
 
 async function GetAchievements(character) {
-    await GetSingleAchievement(character, "Dungeons & Raids", "Fall of the Lich King 25", "ach4608");
-    await GetSingleAchievement(character, "Dungeons & Raids", "Fall of the Lich King 25", "ach4637");
-    await GetSingleAchievement(character, "Dungeons & Raids", "Fall of the Lich King 10", "ach4532");
-    await GetSingleAchievement(character, "Dungeons & Raids", "Fall of the Lich King 10", "ach4636");
+    try {
+        const line = "+--------+--------+--------+--------+--------+";
+        const options = new firefox.Options();
+        options.windowSize({ width: 400, height: 300 });
+        options.addArguments('-hideToolbar');
 
-    console.log(character);
+        driver = new Builder().forBrowser('firefox').setFirefoxOptions(options).build();
+        await driver.get(`http://armory.warmane.com/character/${character.name}/${character.realm}/achievements`);
+
+        character.Achievements.push(line);
+        character.Achievements.push("|   Raid    |   25HC   |   25NM  |   10HC   |  10NM   |");
+        character.Achievements.push(line);
+
+        let icc = "|    ICC     ";
+        icc += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Fall of the Lich King 25", Achievements.Raids.ICC25HC);
+        icc += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Fall of the Lich King 25", Achievements.Raids.ICC25);
+        icc += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Fall of the Lich King 10", Achievements.Raids.ICC10HC);
+        icc += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Fall of the Lich King 10", Achievements.Raids.ICC10);
+        icc += "|";
+        character.Achievements.push(icc);
+        character.Achievements.push(line);
+
+        let rs = "|    RS      ";
+        rs += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Lich King 25-Player Raid", Achievements.Raids.RS25HC);
+        rs += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Lich King 25-Player Raid", Achievements.Raids.RS25);
+        rs += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Lich King 10-Player Raid", Achievements.Raids.RS10HC);
+        rs += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Lich King 10-Player Raid", Achievements.Raids.RS10);
+        rs += "|";
+        character.Achievements.push(rs);
+        character.Achievements.push(line);
+
+        let toc = "|    TOC    ";
+        toc += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Call of the Crusade 25", Achievements.Raids.TOC25HC);
+        toc += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Call of the Crusade 25", Achievements.Raids.TOC25);
+        toc += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Call of the Crusade 10", Achievements.Raids.TOC10HC);
+        toc += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Call of the Crusade 10", Achievements.Raids.TOC10);
+        toc += "|";
+        character.Achievements.push(toc);
+        character.Achievements.push(line);
+    } finally {
+        await driver.quit();
+    }
 }
 
 async function GetSingleAchievement(character, path1, path2, achievementID) {
-    const options = new firefox.Options();
-
-    // Set window size to a smaller dimension to mimic minimized appearance
-    options.windowSize({ width: 400, height: 300 });
-
-    // Hide the toolbar
-    options.addArguments('-hideToolbar');
-
-    const driver = new Builder().forBrowser('firefox').setFirefoxOptions(options).build();
+    await driver.wait(until.elementLocated(By.xpath(`//a[contains(text(), '${path1}')]`)), 10000).click();
+    await driver.wait(until.elementLocated(By.xpath(`//a[contains(text(), '${path2}')]`)), 10000).click();
 
     try {
-        await driver.get(`http://armory.warmane.com/character/${character.name}/${character.realm}/achievements`);
-
-        await driver.wait(until.elementLocated(By.xpath(`//a[contains(text(), '${path1}')]`)), 10000).click();
-        await driver.wait(until.elementLocated(By.xpath(`//a[contains(text(), '${path2}')]`)), 10000).click();
-
-
         let achievementDiv = await driver.findElement(By.id(achievementID));
-        let title = await achievementDiv.findElement(By.className('title')).getAttribute('innerText');
-        let date = await achievementDiv.findElement(By.className('date'));
+        let date = await achievementDiv.findElements(By.className('date'));
 
-        let progress = date ? ":white_check_mark:" : ":x:";
-        let achievement = `${progress} ${title} ${await date.getAttribute('innerText')}`;
-
-        character.Achievements.push(achievement);
-    } finally {
-        await driver.quit();
+        return date && date.length > 0 ? "     :white_check_mark:     " : "     :x:     ";
+    } catch {
+        return "     :x:     ";
     }
 }
 
@@ -285,12 +307,12 @@ async function GetSummary(character) {
     character.Summary =
     `
     Here is a summary for **${character.name}**:
-    **Status**: ${character.online ? ":green_circle: Online" : ":red_circle: Offline"}
+    **Status**: ${character.online ? "Online :green_circle:" : "Offline :red_circle:"}
     **Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction + " " + (character.faction === "Alliance" ? ":blue_heart:" : ":heart:")}
     **Guild**: ${character.guild ? character.GuildLink : `${character.name} doesn't have a guild`}
     **Specs**: ${character.Talents}
     **Professions**: ${character.professions ? character.professions.map(profession => (profession.skill + " " + profession.name)).join(" and ") : "No professions to show"}
-    **Achievements**: ${character.Achievements.length === 0 ? "None" : listPattern + character.Achievements.join(listPattern)}
+    **Achievements**: ${listPattern + character.Achievements.join(listPattern)}
     **Achievement points**: ${character.achievementpoints}
     **Honorable kills**: ${character.honorablekills}
     **GearScore**: ${character.GearScore}
