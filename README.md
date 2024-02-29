@@ -35,8 +35,10 @@ After that, you're ready to run it. For that, you have to do follow these steps:
 * [OPTIONAL] If you want to run this as a service (in the background), you can check out [this package](https://pm2.keymetrics.io/docs/usage/quick-start/).
 
 ## Generate a link to invite the bot to your server
-* Head back to the Discord's Developer Portal and navigate to the **OAuth2** page
-* Change the authorization method of the bot to this:
+* Head back to the Discord's Developer Portal and navigate to the **Bot** page and activate the *Message content intent*:
+![image](https://github.com/kikchan/Snuske/assets/26814080/43b0a2fe-5838-4028-aa29-f7e8d03ab119)
+
+* Now go to the **OAuth2** page and change the authorization method of the bot to this:
 ![image](https://github.com/kikchan/Snuske/assets/26814080/333dd03e-96f3-4f3d-96a9-53e70d69fb3f)
 
 * Save the changes.
