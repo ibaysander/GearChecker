@@ -1,11 +1,11 @@
 require("dotenv").config();
-const {Client, Intents} = require("discord.js");
+const { Client, Intents } = require("discord.js");
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 const crypto = require('crypto');
 const CharacterManager = require('./application/CharacterManager')
-const CommandInfo = require('./common/constants/CommandInfo')
-const {RealmEnum} = require('./domain/enums/RealmEnum')
-const {GetCamelToe} = require("./common/helpers/GenericHelper");
+const CI = require('./common/constants/CommandInfo')
+const { RealmEnum } = require('./domain/enums/RealmEnum')
+const { GetCamelToe } = require("./common/helpers/GenericHelper");
 
 let msg;
 
@@ -23,33 +23,32 @@ client.on('messageCreate', msgIn => {
 
             let command = msg.content.split(" ")[0];
             let name = msg.content.split(" ")[1] !== undefined ? msg.content.split(" ")[1] : null;
-            let realm = msg.content.split(" ")[2] !== undefined ? msg.content.split(" ")[2] : RealmEnum[0];
-            realm = GetCamelToe(realm);
+            let realm = msg.content.split(" ")[2] !== undefined ? GetCamelToe(msg.content.split(" ")[2]) : RealmEnum[0];
 
-            if (command === CommandInfo.Commands.help) msg.channel.send(CommandInfo.Help);
-            else if (Object.values(CommandInfo.Commands).includes(command) && Object.values(RealmEnum).includes(realm)) {
+            if (command === CI.Commands.help) msg.channel.send(CI.Help);
+            else if (Object.values(CI.Commands).includes(command) && Object.values(RealmEnum).includes(realm) && name != null) {
                 CharacterManager.GetCharacter(realm, name)
                 .then(character => {
                     switch (command) {
-                        case CommandInfo.Commands.guild:
+                        case CI.Commands.guild:
                             msg.channel.send(
                                 character.guild ?
                                     `${character.name}'s guild: ${character.GuildLink}` :
                                     `${character.name} doesn't have a guild`);
                             break;
-                        case CommandInfo.Commands.gs:
+                        case CI.Commands.gs:
                             msg.channel.send(`${character.name}'s gear score is: ${character.GearScore}`);
                             break;
-                        case CommandInfo.Commands.ench:
+                        case CI.Commands.ench:
                             msg.channel.send(character.Enchants);
                             break;
-                        case CommandInfo.Commands.gems:
+                        case CI.Commands.gems:
                             msg.channel.send(character.Gems);
                             break;
-                        case CommandInfo.Commands.armory:
+                        case CI.Commands.armory:
                             msg.channel.send(`${character.name}'s armory: ${character.Armory}`);
                             break;
-                        case CommandInfo.Commands.summary:
+                        case CI.Commands.summary:
                             msg.channel.send(character.Summary);
                             break;
                     }
@@ -60,7 +59,7 @@ client.on('messageCreate', msgIn => {
                     msg.channel.send(err);
                 });
             }
-            else msg.channel.send(CommandInfo.InvalidCommand);
+            else msg.channel.send(CI.InvalidCommand);
         }
     }
     catch (e) {

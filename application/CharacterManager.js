@@ -1,10 +1,15 @@
 const cheerio = require("cheerio");
 const request = require("request-promise");
-const {GetItems} = require('../infrastructure/ItemManager')
-const {Character} = require('../domain/entities/Character')
-const {ItemTypeEnum, ItemTypeEnumToString} = require('../domain/enums/ItemTypeEnum')
-const {WarmaneItemTypeEnum} = require('../domain/enums/WarmaneItemTypeEnum')
-const {GetCamelToe, GetParams} = require('../common/helpers/GenericHelper')
+const { GetItems } = require('../infrastructure/ItemManager')
+const { Character } = require('../domain/entities/Character')
+const { ItemTypeEnum, ItemTypeEnumToString } = require('../domain/enums/ItemTypeEnum')
+const { WarmaneItemTypeEnum } = require('../domain/enums/WarmaneItemTypeEnum')
+const { GetCamelToe, GetParams } = require('../common/helpers/GenericHelper')
+const { Builder, By, until } = require('selenium-webdriver');
+const firefox = require('selenium-webdriver/firefox');
+const Achievements = require('../common/constants/Achievements');
+
+let driver;
 
 function GetCharacter(realm, name) {
     return new Promise(async (resolve, reject) => {
@@ -17,6 +22,7 @@ function GetCharacter(realm, name) {
                     await GetEnchants(character);
                     await GetGems(character);
                     await GetTalents(character);
+                    await GetAchievements(character);
                     await GetSummary(character);
 
                     resolve(character);
@@ -29,7 +35,7 @@ function GetCharacter(realm, name) {
     })
 }
 
-function GetGearScore(character) {
+async function GetGearScore(character) {
     let gearScore = 0;
 
     if (character && character.equipment && character.equipment.length > 0) {
@@ -87,7 +93,7 @@ function GetGearScore(character) {
     }
 }
 
-function GetGems(character) {
+async function GetGems(character) {
     const options = {
         uri: `http://armory.warmane.com/character/${character.name}/${character.realm}/`,
         transform: function (body) {
@@ -160,7 +166,7 @@ function GetGems(character) {
     });
 }
 
-function GetEnchants(character) {
+async function GetEnchants(character) {
     const bannedItems = [1, 5, 6, 9, 14, 15];
     let missingEnchants = [];
 
@@ -217,7 +223,7 @@ function GetEnchants(character) {
     });
 }
 
-function GetTalents(character) {
+async function GetTalents(character) {
     let res = "";
 
     if (character.talents != null) {
@@ -235,13 +241,73 @@ function GetTalents(character) {
     character.Talents = res;
 }
 
-function GetSummary(character) {
-    const pvpGearPattern = "\n\t\t:exclamation:";
+async function GetAchievements(character) {
+    try {
+        const line = "+--------+--------+--------+--------+--------+";
+        const options = new firefox.Options();
+        options.windowSize({ width: 400, height: 300 });
+        options.addArguments('-hideToolbar');
+
+        driver = new Builder().forBrowser('firefox').setFirefoxOptions(options).build();
+        await driver.get(`http://armory.warmane.com/character/${character.name}/${character.realm}/achievements`);
+
+        character.Achievements.push(line);
+        character.Achievements.push("|   Raid    |   25HC   |   25NM  |   10HC   |  10NM   |");
+        character.Achievements.push(line);
+
+        let icc = "|    ICC     ";
+        icc += "|" + await GetSingleAchievement(Achievements.Raids.ICC25HC);
+        icc += "|" + await GetSingleAchievement(Achievements.Raids.ICC25);
+        icc += "|" + await GetSingleAchievement(Achievements.Raids.ICC10HC);
+        icc += "|" + await GetSingleAchievement(Achievements.Raids.ICC10);
+        icc += "|";
+        character.Achievements.push(icc);
+        character.Achievements.push(line);
+
+        let rs = "|    RS      ";
+        rs += "|" + await GetSingleAchievement(Achievements.Raids.RS25HC);
+        rs += "|" + await GetSingleAchievement(Achievements.Raids.RS25);
+        rs += "|" + await GetSingleAchievement(Achievements.Raids.RS10HC);
+        rs += "|" + await GetSingleAchievement(Achievements.Raids.RS10);
+        rs += "|";
+        character.Achievements.push(rs);
+        character.Achievements.push(line);
+
+        let toc = "|    TOC    ";
+        toc += "|" + await GetSingleAchievement(Achievements.Raids.TOC25HC);
+        toc += "|" + await GetSingleAchievement(Achievements.Raids.TOC25);
+        toc += "|" + await GetSingleAchievement(Achievements.Raids.TOC10HC);
+        toc += "|" + await GetSingleAchievement(Achievements.Raids.TOC10);
+        toc += "|";
+        character.Achievements.push(toc);
+        character.Achievements.push(line);
+    } finally {
+        await driver.quit();
+    }
+}
+
+async function GetSingleAchievement(raid) {
+    await driver.wait(until.elementLocated(By.xpath(`//a[contains(text(), '${raid.path1}')]`)), 10000).click();
+    await driver.wait(until.elementLocated(By.xpath(`//a[contains(text(), '${raid.path2}')]`)), 10000).click();
+
+    try {
+        let achievementDiv = await driver.findElement(By.id(raid.id));
+        let date = await achievementDiv.findElements(By.className('date'));
+
+        return date && date.length > 0 ? "     :white_check_mark:     " : "     :x:     ";
+    } catch {
+        return "     :x:     ";
+    }
+}
+
+async function GetSummary(character) {
+    const listPattern = "\n\t\t";
+    const pvpGearPattern = listPattern + ":exclamation:";
 
     character.Summary =
     `
     Here is a summary for **${character.name}**:
-    **Status**: ${character.online ? ":green_circle: Online" : ":red_circle: Offline"}
+    **Status**: ${character.online ? "Online :green_circle:" : "Offline :red_circle:"}
     **Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction + " " + (character.faction === "Alliance" ? ":blue_heart:" : ":heart:")}
     **Guild**: ${character.guild ? character.GuildLink : `${character.name} doesn't have a guild`}
     **Specs**: ${character.Talents}
@@ -253,6 +319,7 @@ function GetSummary(character) {
     **Gems**: ${character.Gems}
     **Armory**: ${character.Armory}
     **PVP items**: ${character.PVPGear.length === 0 ? "None" : pvpGearPattern + character.PVPGear.join(pvpGearPattern)}
+    **Achievements**: ${listPattern + character.Achievements.join(listPattern)}
     `
 }
 
