@@ -256,28 +256,28 @@ async function GetAchievements(character) {
         character.Achievements.push(line);
 
         let icc = "|    ICC     ";
-        icc += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Fall of the Lich King 25", Achievements.Raids.ICC25HC);
-        icc += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Fall of the Lich King 25", Achievements.Raids.ICC25);
-        icc += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Fall of the Lich King 10", Achievements.Raids.ICC10HC);
-        icc += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Fall of the Lich King 10", Achievements.Raids.ICC10);
+        icc += "|" + await GetSingleAchievement(Achievements.Raids.ICC25HC);
+        icc += "|" + await GetSingleAchievement(Achievements.Raids.ICC25);
+        icc += "|" + await GetSingleAchievement(Achievements.Raids.ICC10HC);
+        icc += "|" + await GetSingleAchievement(Achievements.Raids.ICC10);
         icc += "|";
         character.Achievements.push(icc);
         character.Achievements.push(line);
 
         let rs = "|    RS      ";
-        rs += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Lich King 25-Player Raid", Achievements.Raids.RS25HC);
-        rs += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Lich King 25-Player Raid", Achievements.Raids.RS25);
-        rs += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Lich King 10-Player Raid", Achievements.Raids.RS10HC);
-        rs += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Lich King 10-Player Raid", Achievements.Raids.RS10);
+        rs += "|" + await GetSingleAchievement(Achievements.Raids.RS25HC);
+        rs += "|" + await GetSingleAchievement(Achievements.Raids.RS25);
+        rs += "|" + await GetSingleAchievement(Achievements.Raids.RS10HC);
+        rs += "|" + await GetSingleAchievement(Achievements.Raids.RS10);
         rs += "|";
         character.Achievements.push(rs);
         character.Achievements.push(line);
 
         let toc = "|    TOC    ";
-        toc += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Call of the Crusade 25", Achievements.Raids.TOC25HC);
-        toc += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Call of the Crusade 25", Achievements.Raids.TOC25);
-        toc += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Call of the Crusade 10", Achievements.Raids.TOC10HC);
-        toc += "|" + await GetSingleAchievement(character, "Dungeons & Raids", "Call of the Crusade 10", Achievements.Raids.TOC10);
+        toc += "|" + await GetSingleAchievement(Achievements.Raids.TOC25HC);
+        toc += "|" + await GetSingleAchievement(Achievements.Raids.TOC25);
+        toc += "|" + await GetSingleAchievement(Achievements.Raids.TOC10HC);
+        toc += "|" + await GetSingleAchievement(Achievements.Raids.TOC10);
         toc += "|";
         character.Achievements.push(toc);
         character.Achievements.push(line);
@@ -286,12 +286,12 @@ async function GetAchievements(character) {
     }
 }
 
-async function GetSingleAchievement(character, path1, path2, achievementID) {
-    await driver.wait(until.elementLocated(By.xpath(`//a[contains(text(), '${path1}')]`)), 10000).click();
-    await driver.wait(until.elementLocated(By.xpath(`//a[contains(text(), '${path2}')]`)), 10000).click();
+async function GetSingleAchievement(raid) {
+    await driver.wait(until.elementLocated(By.xpath(`//a[contains(text(), '${raid.path1}')]`)), 10000).click();
+    await driver.wait(until.elementLocated(By.xpath(`//a[contains(text(), '${raid.path2}')]`)), 10000).click();
 
     try {
-        let achievementDiv = await driver.findElement(By.id(achievementID));
+        let achievementDiv = await driver.findElement(By.id(raid.id));
         let date = await achievementDiv.findElements(By.className('date'));
 
         return date && date.length > 0 ? "     :white_check_mark:     " : "     :x:     ";
@@ -312,7 +312,6 @@ async function GetSummary(character) {
     **Guild**: ${character.guild ? character.GuildLink : `${character.name} doesn't have a guild`}
     **Specs**: ${character.Talents}
     **Professions**: ${character.professions ? character.professions.map(profession => (profession.skill + " " + profession.name)).join(" and ") : "No professions to show"}
-    **Achievements**: ${listPattern + character.Achievements.join(listPattern)}
     **Achievement points**: ${character.achievementpoints}
     **Honorable kills**: ${character.honorablekills}
     **GearScore**: ${character.GearScore}
@@ -320,6 +319,7 @@ async function GetSummary(character) {
     **Gems**: ${character.Gems}
     **Armory**: ${character.Armory}
     **PVP items**: ${character.PVPGear.length === 0 ? "None" : pvpGearPattern + character.PVPGear.join(pvpGearPattern)}
+    **Achievements**: ${listPattern + character.Achievements.join(listPattern)}
     `
 }
 
