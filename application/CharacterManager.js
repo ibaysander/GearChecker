@@ -5,6 +5,8 @@ const {Character} = require('../domain/entities/Character')
 const {ItemTypeEnum, ItemTypeEnumToString} = require('../domain/enums/ItemTypeEnum')
 const {WarmaneItemTypeEnum} = require('../domain/enums/WarmaneItemTypeEnum')
 const {GetCamelToe, GetParams} = require('../common/helpers/GenericHelper')
+const { Builder, By, Key, until } = require('selenium-webdriver');
+const firefox = require('selenium-webdriver/firefox');
 
 function GetCharacter(realm, name) {
     return new Promise(async (resolve, reject) => {
@@ -17,6 +19,7 @@ function GetCharacter(realm, name) {
                     await GetEnchants(character);
                     await GetGems(character);
                     await GetTalents(character);
+                    await GetAchievements(character);
                     await GetSummary(character);
 
                     resolve(character);
@@ -29,7 +32,7 @@ function GetCharacter(realm, name) {
     })
 }
 
-function GetGearScore(character) {
+async function GetGearScore(character) {
     let gearScore = 0;
 
     if (character && character.equipment && character.equipment.length > 0) {
@@ -87,7 +90,7 @@ function GetGearScore(character) {
     }
 }
 
-function GetGems(character) {
+async function GetGems(character) {
     const options = {
         uri: `http://armory.warmane.com/character/${character.name}/${character.realm}/`,
         transform: function (body) {
@@ -160,7 +163,7 @@ function GetGems(character) {
     });
 }
 
-function GetEnchants(character) {
+async function GetEnchants(character) {
     const bannedItems = [1, 5, 6, 9, 14, 15];
     let missingEnchants = [];
 
@@ -217,7 +220,7 @@ function GetEnchants(character) {
     });
 }
 
-function GetTalents(character) {
+async function GetTalents(character) {
     let res = "";
 
     if (character.talents != null) {
@@ -235,8 +238,49 @@ function GetTalents(character) {
     character.Talents = res;
 }
 
-function GetSummary(character) {
-    const pvpGearPattern = "\n\t\t:exclamation:";
+async function GetAchievements(character) {
+    await GetSingleAchievement(character, "Dungeons & Raids", "Fall of the Lich King 25", "ach4608");
+    await GetSingleAchievement(character, "Dungeons & Raids", "Fall of the Lich King 25", "ach4637");
+    await GetSingleAchievement(character, "Dungeons & Raids", "Fall of the Lich King 10", "ach4532");
+    await GetSingleAchievement(character, "Dungeons & Raids", "Fall of the Lich King 10", "ach4636");
+
+    console.log(character);
+}
+
+async function GetSingleAchievement(character, path1, path2, achievementID) {
+    const options = new firefox.Options();
+
+    // Set window size to a smaller dimension to mimic minimized appearance
+    options.windowSize({ width: 400, height: 300 });
+
+    // Hide the toolbar
+    options.addArguments('-hideToolbar');
+
+    const driver = new Builder().forBrowser('firefox').setFirefoxOptions(options).build();
+
+    try {
+        await driver.get(`http://armory.warmane.com/character/${character.name}/${character.realm}/achievements`);
+
+        await driver.wait(until.elementLocated(By.xpath(`//a[contains(text(), '${path1}')]`)), 10000).click();
+        await driver.wait(until.elementLocated(By.xpath(`//a[contains(text(), '${path2}')]`)), 10000).click();
+
+
+        let achievementDiv = await driver.findElement(By.id(achievementID));
+        let title = await achievementDiv.findElement(By.className('title')).getAttribute('innerText');
+        let date = await achievementDiv.findElement(By.className('date'));
+
+        let progress = date ? ":white_check_mark:" : ":x:";
+        let achievement = `${progress} ${title} ${await date.getAttribute('innerText')}`;
+
+        character.Achievements.push(achievement);
+    } finally {
+        await driver.quit();
+    }
+}
+
+async function GetSummary(character) {
+    const listPattern = "\n\t\t";
+    const pvpGearPattern = listPattern + ":exclamation:";
 
     character.Summary =
     `
@@ -246,6 +290,7 @@ function GetSummary(character) {
     **Guild**: ${character.guild ? character.GuildLink : `${character.name} doesn't have a guild`}
     **Specs**: ${character.Talents}
     **Professions**: ${character.professions ? character.professions.map(profession => (profession.skill + " " + profession.name)).join(" and ") : "No professions to show"}
+    **Achievements**: ${character.Achievements.length === 0 ? "None" : listPattern + character.Achievements.join(listPattern)}
     **Achievement points**: ${character.achievementpoints}
     **Honorable kills**: ${character.honorablekills}
     **GearScore**: ${character.GearScore}
