@@ -27,10 +27,10 @@ function GetCharacter(realm, name) {
 
                     resolve(character);
                 }
-                else reject(`Unfortunately, Warmane's API doesn't return any information about ${name} from realm ${realm}`);
+                else reject(`Unfortunately, Warmane's API didn't return any information about ${name} from realm ${realm}. Try again, please.`);
             })
             .catch(err => {
-                console.error(err);
+                console.log(err);
             });
     })
 }
@@ -48,7 +48,7 @@ async function GetGearScore(character) {
 
             GetItems(equippedItems, (err, itemsDB) => {
                 if (err) {
-                    console.error("Error:", err);
+                    console.log("Error:", err);
                     return;
                 }
 
@@ -132,7 +132,7 @@ async function GetGems(character) {
 
                 GetItems(equippedItems, (err, itemsDB) => {
                     if (err) {
-                        console.error("Error:", err);
+                        console.log("Error:", err);
                         return;
                     }
 
@@ -159,7 +159,7 @@ async function GetGems(character) {
                 });
             })
             .catch(err => {
-                console.error(err.message);
+                console.log(err.message);
 
                 reject(new Error("Couldn't connect to the armory"));
             });

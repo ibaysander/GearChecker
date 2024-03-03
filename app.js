@@ -54,7 +54,7 @@ client.on('messageCreate', msgIn => {
                     }
                 })
                 .catch(err => {
-                    console.error(err);
+                    console.log(err);
 
                     msg.channel.send(err);
                 });
@@ -63,7 +63,7 @@ client.on('messageCreate', msgIn => {
         }
     }
     catch (e) {
-        console.error(`[${new Date().toLocaleString()}: ${guid}]:> ${e.message}`);
+        console.log(`[${new Date().toLocaleString()}: ${guid}]:> ${e.message}`);
     }
 });
 
