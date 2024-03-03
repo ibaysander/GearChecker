@@ -13,9 +13,8 @@ client.on('ready', () => {
     console.log(`[${new Date().toLocaleString()}]:> Logged in as ${client.user.tag}!`);
 });
 
-client.on('messageCreate', msgIn => {
+client.on('messageCreate', async(msg) => {
     let guid = crypto.randomUUID();
-    msg = msgIn;
 
     try {
         if (msg.content[0] === "!") {
@@ -25,41 +24,48 @@ client.on('messageCreate', msgIn => {
             let name = msg.content.split(" ")[1] !== undefined ? msg.content.split(" ")[1] : null;
             let realm = msg.content.split(" ")[2] !== undefined ? GetCamelToe(msg.content.split(" ")[2]) : RealmEnum[0];
 
-            if (command === CI.Commands.help) msg.channel.send(CI.Help);
+            msg = await msg.channel.messages.fetch(msg.id);
+
+            if (command === CI.Commands.help) msg.reply(CI.Help);
             else if (Object.values(CI.Commands).includes(command) && Object.values(RealmEnum).includes(realm) && name != null) {
                 CharacterManager.GetCharacter(realm, name)
-                .then(character => {
+                .then(async character => {
                     switch (command) {
                         case CI.Commands.guild:
-                            msg.channel.send(
+                            msg.reply(
                                 character.guild ?
                                     `${character.name}'s guild: ${character.GuildLink}` :
                                     `${character.name} doesn't have a guild`);
                             break;
                         case CI.Commands.gs:
-                            msg.channel.send(`${character.name}'s gear score is: ${character.GearScore}`);
+                            msg.reply(`${character.name}'s gear score is: ${character.GearScore}`);
                             break;
                         case CI.Commands.ench:
-                            msg.channel.send(character.Enchants);
+                            msg.reply(character.Enchants);
                             break;
                         case CI.Commands.gems:
-                            msg.channel.send(character.Gems);
+                            msg.reply(character.Gems);
                             break;
                         case CI.Commands.armory:
-                            msg.channel.send(`${character.name}'s armory: ${character.Armory}`);
+                            msg.reply(`${character.name}'s armory: ${character.Armory}`);
                             break;
                         case CI.Commands.summary:
-                            msg.channel.send(character.Summary);
+                            msg.reply(character.Summary);
+                            break;
+                        case CI.Commands.achievements:
+                            await CharacterManager.GetAchievements(character).then(async () => {
+                                msg.reply(`**Achievements**: ${"\n" + character.Achievements.join("\n")}`);
+                            });
                             break;
                     }
                 })
                 .catch(err => {
                     console.log(err);
 
-                    msg.channel.send(err);
+                    msg.reply(err);
                 });
             }
-            else msg.channel.send(CI.InvalidCommand);
+            else msg.reply(CI.InvalidCommand);
         }
     }
     catch (e) {

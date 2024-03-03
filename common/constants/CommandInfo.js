@@ -5,7 +5,8 @@ const Commands = {
     ench: "!ench",
     gems: "!gems",
     armory: "!armory",
-    summary: "!summary"
+    summary: "!summary",
+    achievements: "!achievements"
 }
 
 const Help =
@@ -23,6 +24,7 @@ const Help =
             **!gems [player_name] [realm?]**: Displays which gems are missing from the player's currently equipped items.
             **!armory [player_name] [realm?]**: Returns a link to the player's armory.
             **!summary [player_name] [realm?]**: Lists all the details regarding the given player.
+            **!achievements [player_name] [realm?]**: Lists all the details regarding the given player.
             
             **[realm?]** is an optional parameter. By default = Icecrown.
             
@@ -32,6 +34,7 @@ const Help =
             !gs Metalforce
             !summary Koch Lordaeron
             !gs Koch Lordaeron
+            !
             
 **Feel free to join the official Discord server of the bot [here](https://discord.gg/ZSDpeftAB7) and ask/suggest me anything!**
 `;
