@@ -9,11 +9,9 @@ const { Builder, By, until } = require('selenium-webdriver');
 const firefox = require('selenium-webdriver/firefox');
 const Achievements = require('../common/constants/Achievements');
 
-let driver;
-
-function GetCharacter(realm, name) {
+async function GetCharacter(realm, name) {
     return new Promise(async (resolve, reject) => {
-        let character = new Character(GetCamelToe(realm), GetCamelToe(name));
+        let character = await new Character(GetCamelToe(realm), GetCamelToe(name));
 
         character.request
             .then(async _ => {
@@ -22,7 +20,6 @@ function GetCharacter(realm, name) {
                     await GetEnchants(character);
                     await GetGems(character);
                     await GetTalents(character);
-                    await GetAchievements(character);
                     await GetSummary(character);
 
                     resolve(character);
@@ -242,6 +239,8 @@ async function GetTalents(character) {
 }
 
 async function GetAchievements(character) {
+    let driver;
+
     try {
         const line = "+------------+------------+------------+------------+--------------+";
         const options = new firefox.Options();
@@ -256,37 +255,43 @@ async function GetAchievements(character) {
         character.Achievements.push(line);
 
         let icc = "|    ICC     ";
-        icc += "|" + await GetSingleAchievement(Achievements.Raids.ICC25HC);
-        icc += "|" + await GetSingleAchievement(Achievements.Raids.ICC25);
-        icc += "|" + await GetSingleAchievement(Achievements.Raids.ICC10HC);
-        icc += "|" + await GetSingleAchievement(Achievements.Raids.ICC10);
+        icc += "|" + await GetSingleAchievement(driver, Achievements.Raids.ICC25HC);
+        icc += "|" + await GetSingleAchievement(driver, Achievements.Raids.ICC25);
+        icc += "|" + await GetSingleAchievement(driver, Achievements.Raids.ICC10HC);
+        icc += "|" + await GetSingleAchievement(driver, Achievements.Raids.ICC10);
         icc += "|";
         character.Achievements.push(icc);
         character.Achievements.push(line);
 
         let rs = "|    RS      ";
-        rs += "|" + await GetSingleAchievement(Achievements.Raids.RS25HC);
-        rs += "|" + await GetSingleAchievement(Achievements.Raids.RS25);
-        rs += "|" + await GetSingleAchievement(Achievements.Raids.RS10HC);
-        rs += "|" + await GetSingleAchievement(Achievements.Raids.RS10);
+        rs += "|" + await GetSingleAchievement(driver, Achievements.Raids.RS25HC);
+        rs += "|" + await GetSingleAchievement(driver, Achievements.Raids.RS25);
+        rs += "|" + await GetSingleAchievement(driver, Achievements.Raids.RS10HC);
+        rs += "|" + await GetSingleAchievement(driver, Achievements.Raids.RS10);
         rs += "|";
         character.Achievements.push(rs);
         character.Achievements.push(line);
 
         let toc = "|    TOC   ";
-        toc += "|" + await GetSingleAchievement(Achievements.Raids.TOC25HC);
-        toc += "|" + await GetSingleAchievement(Achievements.Raids.TOC25);
-        toc += "|" + await GetSingleAchievement(Achievements.Raids.TOC10HC);
-        toc += "|" + await GetSingleAchievement(Achievements.Raids.TOC10);
+        toc += "|" + await GetSingleAchievement(driver, Achievements.Raids.TOC25HC);
+        toc += "|" + await GetSingleAchievement(driver, Achievements.Raids.TOC25);
+        toc += "|" + await GetSingleAchievement(driver, Achievements.Raids.TOC10HC);
+        toc += "|" + await GetSingleAchievement(driver, Achievements.Raids.TOC10);
         toc += "|";
         character.Achievements.push(toc);
         character.Achievements.push(line);
     } finally {
-        await driver.quit();
+        if (driver) {
+            try {
+                await driver.quit();
+            } catch (err) {
+                console.log(err);
+            }
+        }
     }
 }
 
-async function GetSingleAchievement(raid) {
+async function GetSingleAchievement(driver, raid) {
     await driver.wait(until.elementLocated(By.xpath(`//a[contains(text(), '${raid.path1}')]`)), 10000).click();
     await driver.wait(until.elementLocated(By.xpath(`//a[contains(text(), '${raid.path2}')]`)), 10000).click();
 
@@ -319,8 +324,10 @@ async function GetSummary(character) {
     **Gems**: ${character.Gems}
     **Armory**: ${character.Armory}
     **PVP items**: ${character.PVPGear.length === 0 ? "None" : pvpGearPattern + character.PVPGear.join(pvpGearPattern)}
-    **Achievements**: ${listPattern + character.Achievements.join(listPattern)}
+    **Achievements**: Type: !achievements ${character.name}
+    
+    The achievements have been moved to another command because, sometimes, the length of the message exceeds the Discord limit of 2000 characters.
     `
 }
 
-module.exports = { GetCharacter }
+module.exports = { GetCharacter, GetAchievements }
