@@ -242,7 +242,6 @@ async function GetAchievements(character) {
     let driver;
 
     try {
-        const line = "+------------+------------+------------+------------+--------------+";
         const options = new firefox.Options();
         options.windowSize({ width: 400, height: 300 });
         options.addArguments('-hideToolbar');
@@ -250,36 +249,11 @@ async function GetAchievements(character) {
         driver = new Builder().forBrowser('firefox').setFirefoxOptions(options).build();
         await driver.get(`http://armory.warmane.com/character/${character.name}/${character.realm}/achievements`);
 
-        character.Achievements.push(line);
-        character.Achievements.push("|   Raid    |   25HC   |   25NM  |   10HC   |  10NM   |");
-        character.Achievements.push(line);
-
-        let icc = "|    ICC     ";
-        icc += "|" + await GetSingleAchievement(driver, Achievements.Raids.ICC25HC);
-        icc += "|" + await GetSingleAchievement(driver, Achievements.Raids.ICC25);
-        icc += "|" + await GetSingleAchievement(driver, Achievements.Raids.ICC10HC);
-        icc += "|" + await GetSingleAchievement(driver, Achievements.Raids.ICC10);
-        icc += "|";
-        character.Achievements.push(icc);
-        character.Achievements.push(line);
-
-        let rs = "|    RS      ";
-        rs += "|" + await GetSingleAchievement(driver, Achievements.Raids.RS25HC);
-        rs += "|" + await GetSingleAchievement(driver, Achievements.Raids.RS25);
-        rs += "|" + await GetSingleAchievement(driver, Achievements.Raids.RS10HC);
-        rs += "|" + await GetSingleAchievement(driver, Achievements.Raids.RS10);
-        rs += "|";
-        character.Achievements.push(rs);
-        character.Achievements.push(line);
-
-        let toc = "|    TOC   ";
-        toc += "|" + await GetSingleAchievement(driver, Achievements.Raids.TOC25HC);
-        toc += "|" + await GetSingleAchievement(driver, Achievements.Raids.TOC25);
-        toc += "|" + await GetSingleAchievement(driver, Achievements.Raids.TOC10HC);
-        toc += "|" + await GetSingleAchievement(driver, Achievements.Raids.TOC10);
-        toc += "|";
-        character.Achievements.push(toc);
-        character.Achievements.push(line);
+        character.Achievements = `\`\`\`fix
+Raid 25HC 25NM 10HC 10NM
+ICC   ${await GetSingleAchievement(driver, Achievements.Raids.ICC25HC)}  ${await GetSingleAchievement(driver, Achievements.Raids.ICC25)}   ${await GetSingleAchievement(driver, Achievements.Raids.ICC10HC)}   ${await GetSingleAchievement(driver, Achievements.Raids.ICC10)}
+RS    ${await GetSingleAchievement(driver, Achievements.Raids.RS25HC)}  ${await GetSingleAchievement(driver, Achievements.Raids.RS25)}   ${await GetSingleAchievement(driver, Achievements.Raids.RS10HC)}   ${await GetSingleAchievement(driver, Achievements.Raids.RS10)}
+TOC   ${await GetSingleAchievement(driver, Achievements.Raids.TOC25HC)}  ${await GetSingleAchievement(driver, Achievements.Raids.TOC25)}   ${await GetSingleAchievement(driver, Achievements.Raids.TOC10HC)}   ${await GetSingleAchievement(driver, Achievements.Raids.TOC10)}\`\`\``;
     } finally {
         if (driver) {
             try {
@@ -299,9 +273,9 @@ async function GetSingleAchievement(driver, raid) {
         let achievementDiv = await driver.findElement(By.id(raid.id));
         let date = await achievementDiv.findElements(By.className('date'));
 
-        return date && date.length > 0 ? "     :white_check_mark:     " : "     :x:     ";
+        return date && date.length > 0 ? "✅" : "❌";
     } catch {
-        return "     :x:     ";
+        return "❌";
     }
 }
 

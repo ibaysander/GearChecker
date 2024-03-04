@@ -34,7 +34,7 @@ class Character {
                 `[${this.guild}](http://armory.warmane.com/guild/${this.guild.replaceAll(" ", "+")}/${realm})` :
                 null;
             this.PVPGear = [];
-            this.Achievements = [];
+            this.Achievements = null;
         });
     }
 }
