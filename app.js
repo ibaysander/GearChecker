@@ -54,7 +54,7 @@ client.on('messageCreate', async(msg) => {
                             break;
                         case CI.Commands.achievements:
                             await CharacterManager.GetAchievements(character).then(async () => {
-                                msg.reply(`**Achievements**: ${"\n" + character.Achievements.join("\n")}`);
+                                msg.reply(`**${character.name}'s achievements**:\n${character.Achievements}`);
                             });
                             break;
                     }
