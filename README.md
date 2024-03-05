@@ -58,7 +58,7 @@ Supported commands:
 * !gems [player_name] [realm?]: Displays which gems are missing from the player's currently equipped items.
 * !armory [player_name] [realm?]: Returns a link to the player's armory.
 * !summary [player_name] [realm?]: Lists all the details regarding the given player.
-* !achievements [player_name] [realm?]: Displays a table with the achievement progress of the player.
+* !achievements or !achi [player_name] [realm?]: Lists all the details regarding the given player.
 
 [realm?] is an optional parameter. By default = Icecrown.
 
@@ -69,6 +69,7 @@ Example of usage:
 * !summary Koch Lordaeron
 * !gs Koch Lordaeron
 * !achievements Metalforce
+* !achi Metalforce
 
 ![image](https://github.com/kikchan/Snuske/assets/26814080/60c1ef60-fa1a-443f-90c2-9db94f4bb28a)
 

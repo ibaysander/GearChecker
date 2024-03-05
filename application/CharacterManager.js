@@ -290,17 +290,15 @@ async function GetSummary(character) {
     **Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction + " " + (character.faction === "Alliance" ? ":blue_heart:" : ":heart:")}
     **Guild**: ${character.guild ? character.GuildLink : `${character.name} doesn't have a guild`}
     **Specs**: ${character.Talents}
-    **Professions**: ${character.professions ? character.professions.map(profession => (profession.skill + " " + profession.name)).join(" and ") : "No professions to show"}
-    **Achievement points**: ${character.achievementpoints}
-    **Honorable kills**: ${character.honorablekills}
+    **Professions**: ${character.professions ? character.professions.map(profession => (profession.skill + " " + profession.name)).join(" and ") + " :tools:" : "No professions to show"}
+    **Achievement points**: ${character.achievementpoints} :trophy:
+    **Honorable kills**: ${character.honorablekills} :skull_crossbones:
     **GearScore**: ${character.GearScore}
     **Enchants**: ${character.Enchants}
     **Gems**: ${character.Gems}
     **Armory**: ${character.Armory}
     **PVP items**: ${character.PVPGear.length === 0 ? "None" : pvpGearPattern + character.PVPGear.join(pvpGearPattern)}
-    **Achievements**: Type: !achievements ${character.name}
-    
-    The achievements have been moved to another command because, sometimes, the length of the message exceeds the Discord limit of 2000 characters.
+    **Achievements**: Type !achievements ${character.name} or !achi ${character.name}
     `
 }
 

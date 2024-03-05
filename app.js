@@ -53,6 +53,7 @@ client.on('messageCreate', async(msg) => {
                             msg.reply(character.Summary);
                             break;
                         case CI.Commands.achievements:
+                        case CI.Commands.achi:
                             await CharacterManager.GetAchievements(character).then(async () => {
                                 msg.reply(`**${character.name}'s achievements**:\n${character.Achievements}`);
                             });
