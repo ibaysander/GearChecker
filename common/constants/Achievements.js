@@ -10,12 +10,12 @@ const Raids = {
         path2: "Fall of the Lich King 10"
     },
     ICC25: {
-        id: "ach4637",
+        id: "ach4608",
         path1: "Dungeons & Raids",
         path2: "Fall of the Lich King 25"
     },
     ICC25HC: {
-        id: "ach4608",
+        id: "ach4637",
         path1: "Dungeons & Raids",
         path2: "Fall of the Lich King 25"
     },
