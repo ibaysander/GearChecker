@@ -149,8 +149,8 @@ async function GetGems(character) {
                         }
 
                     });
-                    if (missingGems.length === 0) character.Gems = `${character.name} has gemmed all his items!`;
-                    else character.Gems = `${character.name} needs to gem ${missingGems.join(", ")}`;
+                    if (missingGems.length === 0) character.Gems = `${character.name} has gemmed all his items! :white_check_mark:`;
+                    else character.Gems = `${character.name} needs to gem ${missingGems.join(", ")} :x:`;
 
                     resolve(character.Gems);
                 });
@@ -212,8 +212,8 @@ async function GetEnchants(character) {
                 }
             }
 
-            if (missingEnchants.length === 0) character.Enchants = `${character.name} has all enchants!`;
-            else character.Enchants = `${character.name} is missing enchants from: ${missingEnchants.join(", ")}`;
+            if (missingEnchants.length === 0) character.Enchants = `${character.name} has all enchants! :white_check_mark:`;
+            else character.Enchants = `${character.name} is missing enchants from: ${missingEnchants.join(", ")} :x:`;
 
             resolve(character.Enchants);
         });
