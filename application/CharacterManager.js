@@ -250,10 +250,12 @@ async function GetAchievements(character) {
         await driver.get(`http://armory.warmane.com/character/${character.name}/${character.realm}/achievements`);
 
         character.Achievements = `\`\`\`fix
-Raid 25HC 25NM 10HC 10NM
-ICC   ${await GetSingleAchievement(driver, Achievements.Raids.ICC25HC)}  ${await GetSingleAchievement(driver, Achievements.Raids.ICC25)}   ${await GetSingleAchievement(driver, Achievements.Raids.ICC10HC)}   ${await GetSingleAchievement(driver, Achievements.Raids.ICC10)}
-RS    ${await GetSingleAchievement(driver, Achievements.Raids.RS25HC)}  ${await GetSingleAchievement(driver, Achievements.Raids.RS25)}   ${await GetSingleAchievement(driver, Achievements.Raids.RS10HC)}   ${await GetSingleAchievement(driver, Achievements.Raids.RS10)}
-TOC   ${await GetSingleAchievement(driver, Achievements.Raids.TOC25HC)}  ${await GetSingleAchievement(driver, Achievements.Raids.TOC25)}   ${await GetSingleAchievement(driver, Achievements.Raids.TOC10HC)}   ${await GetSingleAchievement(driver, Achievements.Raids.TOC10)}\`\`\``;
+Raid   | 25HC 25NM 10HC 10NM
+----------------------------
+ICC    |  ${await GetSingleAchievement(driver, Achievements.Raids.ICC25HC)}  ${await GetSingleAchievement(driver, Achievements.Raids.ICC25)}   ${await GetSingleAchievement(driver, Achievements.Raids.ICC10HC)}  ${await GetSingleAchievement(driver, Achievements.Raids.ICC10)}
+RS     |  ${await GetSingleAchievement(driver, Achievements.Raids.RS25HC)}  ${await GetSingleAchievement(driver, Achievements.Raids.RS25)}   ${await GetSingleAchievement(driver, Achievements.Raids.RS10HC)}  ${await GetSingleAchievement(driver, Achievements.Raids.RS10)}
+TOC    |  ${await GetSingleAchievement(driver, Achievements.Raids.TOC25HC)}  ${await GetSingleAchievement(driver, Achievements.Raids.TOC25)}   ${await GetSingleAchievement(driver, Achievements.Raids.TOC10HC)}  ${await GetSingleAchievement(driver, Achievements.Raids.TOC10)}
+ULDUAR |  ${await GetSingleAchievement(driver, Achievements.Raids.ULDUAR25HC)}  ${await GetSingleAchievement(driver, Achievements.Raids.ULDUAR25)}   ${await GetSingleAchievement(driver, Achievements.Raids.ULDUAR10HC)}  ${await GetSingleAchievement(driver, Achievements.Raids.ULDUAR10)}\`\`\``;
     } finally {
         if (driver) {
             try {
