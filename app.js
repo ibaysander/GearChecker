@@ -11,7 +11,8 @@ const bodyParser = require('body-parser');
 const { exec } = require('child_process');
 
 const app = express();
-const PORT = 2001;
+const port = 2001;
+const pm2_process_name = "GearChecker"; // PM2 process name
 
 // Middleware to parse JSON request body
 app.use(bodyParser.json());
@@ -85,32 +86,29 @@ client.login(process.env.discord_bot_id);
 
 // Route to handle GitHub webhook requests
 app.post('/', (req, res) => {
-    // Verify the GitHub webhook payload using the secret token
-    const signature = req.headers['x-hub-signature-256'];
-    const hmac = crypto.createHmac('sha256', process.env.webhook_secret);
-    const payloadBody = JSON.stringify(req.body);
-    const calculatedSignature = `sha256=${hmac.update(payloadBody).digest('hex')}`;
-
-    if (signature !== calculatedSignature) {
-        console.error('Webhook signature verification failed. Aborting.');
-        res.sendStatus(403);
-        return;
-    }
-
-    // Process the webhook payload
-    console.log('Webhook payload:', req.body);
-
-    // Run another script here
-    exec('powershell.exe -File GearChecker_update.ps1', (error) => {
+    exec(`cd ${process.env.app_dir} && git pull origin main`, (error, stdout, stderr) => {
         if (error) {
-            console.log(`Error executing script: ${error}`);
+            console.log(`Error pulling changes: ${error}`);
+            res.sendStatus(500); // Internal Server Error
             return;
         }
-    });
 
-    res.sendStatus(200); // OK
+        console.log('Changes pulled successfully.');
+
+        // Restart the application with PM2
+        exec(`pm2 restart ${pm2_process_name}`, (error, stdout, stderr) => {
+            if (error) {
+                console.log(`Error restarting application: ${error}`);
+                res.sendStatus(500);
+                return;
+            }
+
+            console.log('Application restarted successfully.');
+            res.sendStatus(200);
+        });
+    });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
 });
