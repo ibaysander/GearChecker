@@ -86,7 +86,7 @@ client.login(process.env.discord_bot_id);
 
 // Route to handle GitHub webhook requests
 app.post('/', (req, res) => {
-    const command = `powershell.exe -File "${process.env.app_dir}update_app.ps1"`;
+    const command = `Start-Process powershell -Verb RunAs -ArgumentList '-File "${process.env.app_dir}update_app.ps1"'`;
 
     exec(command, (error) => {
         if (error) {
