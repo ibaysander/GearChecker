@@ -61,6 +61,27 @@ const Raids = {
         path1: "Dungeons & Raids",
         path2: "Call of the Crusade 25"
     },
+
+    ULDUAR10: {
+        id: "ach2894",
+        path1: "Dungeons & Raids",
+        path2: "Secrets of Ulduar 10"
+    },
+    ULDUAR10HC: {
+        id: "ach3159",
+        path1: "Dungeons & Raids",
+        path2: "Secrets of Ulduar 10"
+    },
+    ULDUAR25: {
+        id: "ach2895",
+        path1: "Dungeons & Raids",
+        path2: "Secrets of Ulduar 25"
+    },
+    ULDUAR25HC: {
+        id: "ach3164",
+        path1: "Dungeons & Raids",
+        path2: "Secrets of Ulduar 25"
+    },
 }
 
 module.exports = { Raids }
