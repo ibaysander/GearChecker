@@ -87,7 +87,7 @@ client.login(process.env.discord_bot_id);
 app.post('/', (req, res) => {
     // Verify the GitHub webhook payload using the secret token
     const signature = req.headers['x-hub-signature-256'];
-    const hmac = crypto.createHmac('sha256', WEBHOOK_SECRET);
+    const hmac = crypto.createHmac('sha256', process.env.webhook_secret);
     const payloadBody = JSON.stringify(req.body);
     const calculatedSignature = `sha256=${hmac.update(payloadBody).digest('hex')}`;
 
