@@ -86,7 +86,7 @@ client.login(process.env.discord_bot_id);
 
 // Route to handle GitHub webhook requests
 app.post('/', (req, res) => {
-    exec(`cd ${process.env.app_dir}`, (error) => {
+    exec('cd ' + process.env.app_dir, (error) => {
         if (error) {
             if (error) {
                 console.log(`Error pulling changes: ${error}`);
