@@ -93,10 +93,10 @@ app.post('/', (req, res) => {
             console.log(`Error executing script: ${error}`);
             return;
         }
-    });
 
-    console.log('Command output:', stdout);
-    console.log('Command errors:', stderr);
+        console.log('Command output:', stdout);
+        console.log('Command errors:', stderr);
+    });
 
     // Respond to the webhook request
     res.sendStatus(200); // OK
