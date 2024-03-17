@@ -86,39 +86,17 @@ client.login(process.env.discord_bot_id);
 
 // Route to handle GitHub webhook requests
 app.post('/', (req, res) => {
-    exec('cd ' + process.env.app_dir, (error) => {
-        if (error) {
-            if (error) {
-                console.log(`Error pulling changes: ${error}`);
-                res.sendStatus(500); // Internal Server Error
-                return;
-            }
-        }
-    });
+    const command = `powershell.exe -File ${process.env.app_dir}update_app.ps1`;
 
-    console.log('Changed directory successfully.');
-
-    exec('git pull', (error) => {
+    exec(command, (error) => {
         if (error) {
-            console.log(`Error pulling changes: ${error}`);
-            res.sendStatus(500); // Internal Server Error
+            console.log(`Error executing script: ${error}`);
             return;
         }
-
-        console.log('Changes pulled successfully.');
     });
 
-    // Restart the application with PM2
-    exec('pm2 restart ' + pm2_process_name, (error) => {
-        if (error) {
-            console.log(`Error restarting application: ${error}`);
-            res.sendStatus(500);
-            return;
-        }
-
-        console.log('Application restarted successfully.');
-        res.sendStatus(200);
-    });
+    // Respond to the webhook request
+    res.sendStatus(200); // OK
 });
 
 // Start express server
