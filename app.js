@@ -94,30 +94,30 @@ app.post('/', (req, res) => {
                 return;
             }
         }
+    });
 
-        console.log('Changed directory successfully.');
+    console.log('Changed directory successfully.');
 
-        exec('git pull', (error) => {
-            if (error) {
-                console.log(`Error pulling changes: ${error}`);
-                res.sendStatus(500); // Internal Server Error
-                return;
-            }
+    exec('git pull', (error) => {
+        if (error) {
+            console.log(`Error pulling changes: ${error}`);
+            res.sendStatus(500); // Internal Server Error
+            return;
+        }
 
-            console.log('Changes pulled successfully.');
+        console.log('Changes pulled successfully.');
+    });
 
-            // Restart the application with PM2
-            exec('pm2 restart ' + pm2_process_name, (error) => {
-                if (error) {
-                    console.log(`Error restarting application: ${error}`);
-                    res.sendStatus(500);
-                    return;
-                }
+    // Restart the application with PM2
+    exec('pm2 restart ' + pm2_process_name, (error) => {
+        if (error) {
+            console.log(`Error restarting application: ${error}`);
+            res.sendStatus(500);
+            return;
+        }
 
-                console.log('Application restarted successfully.');
-                res.sendStatus(200);
-            });
-        });
+        console.log('Application restarted successfully.');
+        res.sendStatus(200);
     });
 });
 
