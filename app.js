@@ -86,7 +86,7 @@ client.login(process.env.discord_bot_id);
 
 // Route to handle GitHub webhook requests
 app.post('/', (req, res) => {
-    exec(`git pull`, (error, stdout, stderr) => {
+    exec('git pull', (error) => {
         if (error) {
             console.log(`Error pulling changes: ${error}`);
             res.sendStatus(500); // Internal Server Error
@@ -96,7 +96,7 @@ app.post('/', (req, res) => {
         console.log('Changes pulled successfully.');
 
         // Restart the application with PM2
-        exec(`pm2 restart ${pm2_process_name}`, (error, stdout, stderr) => {
+        exec('pm2 restart ' + pm2_process_name, (error) => {
             if (error) {
                 console.log(`Error restarting application: ${error}`);
                 res.sendStatus(500);
