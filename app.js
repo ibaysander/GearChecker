@@ -7,14 +7,10 @@ const CI = require('./common/constants/CommandInfo')
 const { RealmEnum } = require('./domain/enums/RealmEnum')
 const { GetCamelToe } = require("./common/helpers/GenericHelper");
 const express = require('express');
-const bodyParser = require('body-parser');
 const { exec } = require('child_process');
 
 const app = express();
 const port = 2001;
-
-// Middleware to parse JSON request body
-app.use(bodyParser.json());
 
 client.on('ready', () => {
     console.log(`[${new Date().toLocaleString()}]:> Logged in as ${client.user.tag}!`);
