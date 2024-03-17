@@ -6,8 +6,15 @@ const CharacterManager = require('./application/CharacterManager')
 const CI = require('./common/constants/CommandInfo')
 const { RealmEnum } = require('./domain/enums/RealmEnum')
 const { GetCamelToe } = require("./common/helpers/GenericHelper");
+const express = require('express');
+const bodyParser = require('body-parser');
+const { exec } = require('child_process');
 
-let msg;
+const app = express();
+const PORT = 2001;
+
+// Middleware to parse JSON request body
+app.use(bodyParser.json());
 
 client.on('ready', () => {
     console.log(`[${new Date().toLocaleString()}]:> Logged in as ${client.user.tag}!`);
@@ -75,3 +82,39 @@ client.on('messageCreate', async(msg) => {
 });
 
 client.login(process.env.discord_bot_id);
+
+// Route to handle GitHub webhook requests
+app.post('/', (req, res) => {
+    // Verify the GitHub webhook payload using the secret token
+    const signature = req.headers['x-hub-signature-256'];
+    const hmac = crypto.createHmac('sha256', WEBHOOK_SECRET);
+    const payloadBody = JSON.stringify(req.body);
+    const calculatedSignature = `sha256=${hmac.update(payloadBody).digest('hex')}`;
+
+    if (signature !== calculatedSignature) {
+        console.error('Webhook signature verification failed. Aborting.');
+        res.sendStatus(403); // Forbidden
+        return;
+    }
+
+    // Process the webhook payload
+    console.log('Webhook payload:', req.body);
+
+    // Run another script here
+    exec('powershell.exe -File \"C:\\Program Files (x86)\\Metalforce\\GearChecker_update.ps1\"', (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error executing script: ${error}`);
+            return;
+        }
+        console.log(`Script output: ${stdout}`);
+        console.error(`Script errors: ${stderr}`);
+    });
+
+    // Respond to the webhook request
+    res.sendStatus(200); // OK
+});
+
+// Start the server
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
