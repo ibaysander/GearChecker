@@ -4,4 +4,4 @@
 package-lock.json
 log.txt
 .env
-*_log.txt
+*log.txt
