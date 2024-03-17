@@ -2,9 +2,13 @@
 $appDir = "C:\Program Files (x86)\Metalforce\GearChecker\"
 $pm2ProcessName = "GearChecker"
 
-# Pull the latest changes from the main branch
+echo "Pull the latest changes from the main branch"
+echo "--------------------------------------------"
 cd $appDir
-git pull origin main
+git pull origin main >> update_log.txt
 
-# Restart your Node.js app with PM2
-pm2 restart $pm2ProcessName
+echo ""
+echo ""
+echo "Restart your Node.js app with PM2"
+echo "--------------------------------------------"
+pm2 restart $pm2ProcessName >> update_log.txt
