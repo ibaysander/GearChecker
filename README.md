@@ -28,6 +28,7 @@ Then you need to create a Discord application. These are the steps:
 
 
 After that, you're ready to run it. For that, you have to do follow these steps:
+* Rename the *.env_example* file to *.env*
 * Edit the *.env* file and paste your token ID like this: discord_bot_id=MTIxMjE2NDQ0NTA0NDg3MTMx...
 * Open the Windows console/Linux terminal from the root folder of the project.
 * Run the command ```npm i```. This will install all the packages of the project.
