@@ -93,7 +93,7 @@ app.post('/', (req, res) => {
 
     if (signature !== calculatedSignature) {
         console.error('Webhook signature verification failed. Aborting.');
-        res.sendStatus(403); // Forbidden
+        res.sendStatus(403);
         return;
     }
 
@@ -101,20 +101,16 @@ app.post('/', (req, res) => {
     console.log('Webhook payload:', req.body);
 
     // Run another script here
-    exec('powershell.exe -File GearChecker_update.ps1', (error, stdout, stderr) => {
+    exec('powershell.exe -File GearChecker_update.ps1', (error) => {
         if (error) {
-            console.error(`Error executing script: ${error}`);
+            console.log(`Error executing script: ${error}`);
             return;
         }
-        console.log(`Script output: ${stdout}`);
-        console.error(`Script errors: ${stderr}`);
     });
 
-    // Respond to the webhook request
     res.sendStatus(200); // OK
 });
 
-// Start the server
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
