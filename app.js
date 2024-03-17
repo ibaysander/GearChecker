@@ -8,6 +8,7 @@ const { RealmEnum } = require('./domain/enums/RealmEnum')
 const { GetCamelToe } = require("./common/helpers/GenericHelper");
 const express = require('express');
 const { exec } = require('child_process');
+const pm2 = require('pm2');
 
 const app = express();
 const port = 2001;
@@ -82,7 +83,7 @@ client.login(process.env.discord_bot_id);
 // Route to handle GitHub webhook requests
 app.post('/', (req, res) => {
     const scriptPath = process.env.app_dir + 'update_app.ps1';
-    const command = `Start-Process powershell -ArgumentList '-File "${scriptPath}"' -Verb RunAs`;
+    const command = `powershell.exe "${scriptPath}"`;
 
     exec(command, (error, stdout, stderr) => {
         if (error) {
@@ -90,8 +91,24 @@ app.post('/', (req, res) => {
             return;
         }
 
-        console.log('Command output:', stdout);
-        console.log('Command errors:', stderr);
+        pm2.connect((error) => {
+            if (error) {
+                console.error('PM2 connection error:', error);
+                res.status(500).send('PM2 connection error');
+                return;
+            }
+
+            pm2.restart('GearChecker', (restartError) => {
+                if (restartError) {
+                    console.error('PM2 restart error:', restartError);
+                    res.status(500).send('PM2 restart error');
+                    return;
+                }
+
+                console.log('PM2 process restarted successfully');
+                res.status(200).send('PM2 process restarted successfully');
+            });
+        });
     });
 
     // Respond to the webhook request
