@@ -114,7 +114,7 @@ app.post('/', (req, res) => {
     res.sendStatus(200); // OK
 });
 
-// Start the express server
+// Start the server
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
