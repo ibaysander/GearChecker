@@ -7,11 +7,14 @@ const CI = require('./common/constants/CommandInfo')
 const { RealmEnum } = require('./domain/enums/RealmEnum')
 const { GetCamelToe } = require("./common/helpers/GenericHelper");
 const express = require('express');
+const bodyParser = require('body-parser');
 const { exec } = require('child_process');
-const pm2 = require('pm2');
 
 const app = express();
 const port = 2001;
+
+// Middleware to parse JSON request body
+app.use(bodyParser.json());
 
 client.on('ready', () => {
     console.log(`[${new Date().toLocaleString()}]:> Logged in as ${client.user.tag}!`);
@@ -33,42 +36,42 @@ client.on('messageCreate', async(msg) => {
             if (command === CI.Commands.help) msg.reply(CI.Help);
             else if (Object.values(CI.Commands).includes(command) && Object.values(RealmEnum).includes(realm) && name != null) {
                 CharacterManager.GetCharacter(realm, name)
-                .then(async character => {
-                    switch (command) {
-                        case CI.Commands.guild:
-                            msg.reply(
-                                character.guild ?
-                                    `${character.name}'s guild: ${character.GuildLink}` :
-                                    `${character.name} doesn't have a guild`);
-                            break;
-                        case CI.Commands.gs:
-                            msg.reply(`${character.name}'s gear score is: ${character.GearScore}`);
-                            break;
-                        case CI.Commands.ench:
-                            msg.reply(character.Enchants);
-                            break;
-                        case CI.Commands.gems:
-                            msg.reply(character.Gems);
-                            break;
-                        case CI.Commands.armory:
-                            msg.reply(`${character.name}'s armory: ${character.Armory}`);
-                            break;
-                        case CI.Commands.summary:
-                            msg.reply(character.Summary);
-                            break;
-                        case CI.Commands.achievements:
-                        case CI.Commands.achi:
-                            await CharacterManager.GetAchievements(character).then(async () => {
-                                msg.reply(`**${character.name}'s achievements**:\n${character.Achievements}`);
-                            });
-                            break;
-                    }
-                })
-                .catch(err => {
-                    console.log(err);
+                    .then(async character => {
+                        switch (command) {
+                            case CI.Commands.guild:
+                                msg.reply(
+                                    character.guild ?
+                                        `${character.name}'s guild: ${character.GuildLink}` :
+                                        `${character.name} doesn't have a guild`);
+                                break;
+                            case CI.Commands.gs:
+                                msg.reply(`${character.name}'s gear score is: ${character.GearScore}`);
+                                break;
+                            case CI.Commands.ench:
+                                msg.reply(character.Enchants);
+                                break;
+                            case CI.Commands.gems:
+                                msg.reply(character.Gems);
+                                break;
+                            case CI.Commands.armory:
+                                msg.reply(`${character.name}'s armory: ${character.Armory}`);
+                                break;
+                            case CI.Commands.summary:
+                                msg.reply(character.Summary);
+                                break;
+                            case CI.Commands.achievements:
+                            case CI.Commands.achi:
+                                await CharacterManager.GetAchievements(character).then(async () => {
+                                    msg.reply(`**${character.name}'s achievements**:\n${character.Achievements}`);
+                                });
+                                break;
+                        }
+                    })
+                    .catch(err => {
+                        console.log(err);
 
-                    msg.reply(err);
-                });
+                        msg.reply(err);
+                    });
             }
             else msg.reply(CI.InvalidCommand);
         }
@@ -82,39 +85,16 @@ client.login(process.env.discord_bot_id);
 
 // Route to handle GitHub webhook requests
 app.post('/', (req, res) => {
-    const scriptPath = process.env.app_dir + 'update_app.ps1';
-    const command = `powershell.exe "${scriptPath}"`;
-
-    exec(command, (error, stdout, stderr) => {
+    exec('git pull', (error) => {
         if (error) {
             console.log(`Error executing script: ${error}`);
             return;
         }
-
-        pm2.connect((error) => {
-            if (error) {
-                console.error('PM2 connection error:', error);
-                res.status(500).send('PM2 connection error');
-                return;
-            }
-
-            pm2.restart('GearChecker', (restartError) => {
-                if (restartError) {
-                    console.error('PM2 restart error:', restartError);
-                    res.status(500).send('PM2 restart error');
-                    return;
-                }
-
-                console.log('PM2 process restarted successfully');
-                res.status(200).send('PM2 process restarted successfully');
-            });
-        });
     });
 
     // Respond to the webhook request
     res.sendStatus(200); // OK
 });
-
 
 // Start express server
 app.listen(port, () => {
