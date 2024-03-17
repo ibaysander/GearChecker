@@ -12,7 +12,6 @@ const { exec } = require('child_process');
 
 const app = express();
 const port = 2001;
-const pm2_process_name = "GearChecker"; // PM2 process name
 
 // Middleware to parse JSON request body
 app.use(bodyParser.json());
