@@ -86,25 +86,37 @@ client.login(process.env.discord_bot_id);
 
 // Route to handle GitHub webhook requests
 app.post('/', (req, res) => {
-    exec('git pull', (error) => {
+    exec(`cd ${process.env.app_dir}`, (error) => {
         if (error) {
-            console.log(`Error pulling changes: ${error}`);
-            res.sendStatus(500); // Internal Server Error
-            return;
+            if (error) {
+                console.log(`Error pulling changes: ${error}`);
+                res.sendStatus(500); // Internal Server Error
+                return;
+            }
         }
 
-        console.log('Changes pulled successfully.');
+        console.log('Changed directory successfully.');
 
-        // Restart the application with PM2
-        exec('pm2 restart ' + pm2_process_name, (error) => {
+        exec('git pull', (error) => {
             if (error) {
-                console.log(`Error restarting application: ${error}`);
-                res.sendStatus(500);
+                console.log(`Error pulling changes: ${error}`);
+                res.sendStatus(500); // Internal Server Error
                 return;
             }
 
-            console.log('Application restarted successfully.');
-            res.sendStatus(200);
+            console.log('Changes pulled successfully.');
+
+            // Restart the application with PM2
+            exec('pm2 restart ' + pm2_process_name, (error) => {
+                if (error) {
+                    console.log(`Error restarting application: ${error}`);
+                    res.sendStatus(500);
+                    return;
+                }
+
+                console.log('Application restarted successfully.');
+                res.sendStatus(200);
+            });
         });
     });
 });
