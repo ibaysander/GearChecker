@@ -101,7 +101,7 @@ app.post('/', (req, res) => {
     console.log('Webhook payload:', req.body);
 
     // Run another script here
-    exec('powershell.exe -File \"C:\\Program Files (x86)\\Metalforce\\GearChecker_update.ps1\"', (error, stdout, stderr) => {
+    exec('powershell.exe -File GearChecker_update.ps1', (error, stdout, stderr) => {
         if (error) {
             console.error(`Error executing script: ${error}`);
             return;
