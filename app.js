@@ -78,7 +78,7 @@ client.on('messageCreate', async(msg) => {
 
 client.login(process.env.discord_bot_id);
 
-app.post('/healthcheck', (req, res) => {
+app.get('/healthcheck', (req, res) => {
     res.sendStatus(200); // OK
 });
 
