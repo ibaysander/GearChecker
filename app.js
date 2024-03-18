@@ -7,7 +7,6 @@ const CI = require('./common/constants/CommandInfo')
 const { RealmEnum } = require('./domain/enums/RealmEnum')
 const { GetCamelToe } = require("./common/helpers/GenericHelper");
 const express = require('express');
-const { exec } = require('child_process');
 
 const app = express();
 const port = 2001;
@@ -79,20 +78,11 @@ client.on('messageCreate', async(msg) => {
 
 client.login(process.env.discord_bot_id);
 
-// Route to handle GitHub webhook requests
-app.post('/', (req, res) => {
-    exec('git pull', (error) => {
-        if (error) {
-            console.log(`Error executing script: ${error}`);
-            return;
-        }
-    });
-
-    // Respond to the webhook request
+app.post('/healthcheck', (req, res) => {
     res.sendStatus(200); // OK
 });
 
 // Start the express server
 app.listen(port, () => {
-    console.log(`[${new Date().toLocaleString()}]:> Webhook server is running on port: ${port}`);
+    console.log(`[${new Date().toLocaleString()}]:> Server is running on port: ${port}`);
 });
