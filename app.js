@@ -9,7 +9,7 @@ const { GetCamelToe } = require("./common/helpers/GenericHelper");
 const express = require('express');
 
 const app = express();
-const port = 2001;
+const port = 2000;
 
 client.on('ready', () => {
     console.log(`[${new Date().toLocaleString()}]:> Logged in as: ${client.user.tag}`);
