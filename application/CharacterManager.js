@@ -287,20 +287,24 @@ async function GetSummary(character) {
 
     character.Summary =
     `
-    Here is a summary for **${character.name}**:
-    **Status**: ${character.online ? "Online :green_circle:" : "Offline :red_circle:"}
-    **Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction + " " + (character.faction === "Alliance" ? ":blue_heart:" : ":heart:")}
-    **Guild**: ${character.guild ? character.GuildLink : `${character.name} doesn't have a guild`}
-    **Specs**: ${character.Talents}
-    **Professions**: ${character.professions ? character.professions.map(profession => (profession.skill + " " + profession.name)).join(" and ") + " :tools:" : "No professions to show"}
-    **Achievement points**: ${character.achievementpoints} :trophy:
-    **Honorable kills**: ${character.honorablekills} :skull_crossbones:
-    **GearScore**: ${character.GearScore}
-    **Enchants**: ${character.Enchants}
-    **Gems**: ${character.Gems}
-    **Armory**: ${character.Armory}
-    **PVP items**: ${character.PVPGear.length === 0 ? "None" : pvpGearPattern + character.PVPGear.join(pvpGearPattern)}
-    **Achievements**: Type !achievements ${character.name} or !achi ${character.name}
+Do you enjoy using the bot? :wink:
+Feel free to donate some gold/coins to Metalforce (Alliance, Icecrown).
+This helps paying the bills for my dedicated server and developing the bot.
+    
+Here is a summary for **${character.name}**:
+**Status**: ${character.online ? "Online :green_circle:" : "Offline :red_circle:"}
+**Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction + " " + (character.faction === "Alliance" ? ":blue_heart:" : ":heart:")}
+**Guild**: ${character.guild ? character.GuildLink : `${character.name} doesn't have a guild`}
+**Specs**: ${character.Talents}
+**Professions**: ${character.professions ? character.professions.map(profession => (profession.skill + " " + profession.name)).join(" and ") + " :tools:" : "No professions to show"}
+**Achievement points**: ${character.achievementpoints} :trophy:
+**Honorable kills**: ${character.honorablekills} :skull_crossbones:
+**GearScore**: ${character.GearScore}
+**Enchants**: ${character.Enchants}
+**Gems**: ${character.Gems}
+**Armory**: ${character.Armory}
+**PVP items**: ${character.PVPGear.length === 0 ? "None" : pvpGearPattern + character.PVPGear.join(pvpGearPattern)}
+**Achievements**: Type !achievements ${character.name} or !achi ${character.name}
     `
 }
 
