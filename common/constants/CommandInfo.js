@@ -13,9 +13,7 @@ const Commands = {
 const Help =
 `
 **Info**:
-            **Hello! I'm Snuske's child! I now officially support Lordaeron and other WotLK Warmane realms! 
-            The usage is the same as before but you can add the realm after your character's name. 
-            But if you don't I'll search in Icecrown as the default realm.**                
+            **Menerima jual beli ginjal, DM @ccz15**                
                 
 **Supported commands**:
             **!help**: Displays this help text.
@@ -30,15 +28,13 @@ const Help =
             **[realm?]** is an optional parameter. By default = Icecrown.
             
 **Example of usage**:
-            !sum Metalforce Icecrown
-            !guild Metalforce
-            !gs Metalforce
-            !sum Koch Lordaeron
-            !gs Koch Lordaeron
-            !achievements Metalforce
-            !achi Metalforce
-            
-**Feel free to join the official Discord server of the bot [here](https://discord.gg/ZSDpeftAB7) and ask/suggest me anything!**
+            !sum Cly Icecrown
+            !guild Cly
+            !gs Cly
+            !sum Cly Lordaeron
+            !gs Cly Lordaeron
+            !achievements Cly
+            !achi Cly!**
 `;
 
 const InvalidCommand =
