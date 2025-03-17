@@ -1,0 +1,12 @@
+services:
+  gearchecker:
+    build: .
+    container_name: gearchecker
+    restart: unless-stopped
+    ports:
+      - "2000:2000"
+    volumes:
+      - ./logs:/app/logs
+      - ./database:/app/database
+    env_file:
+      - .env
