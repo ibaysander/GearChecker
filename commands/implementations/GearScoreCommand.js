@@ -1,8 +1,7 @@
 const BaseCommand = require('../base/BaseCommand');
 const { Commands } = require('../../common/constants/CommandInfo');
-const { RealmEnum } = require('../../domain/enums/RealmEnum');
-const CharacterManager = require('../../application/CharacterManager');
-const { GetCamelToe } = require('../../common/helpers/GenericHelper');
+const CharacterService = require('../../services/character/CharacterService');
+const Logger = require('../../utils/Logger');
 
 class GearScoreCommand extends BaseCommand {
     constructor() {
@@ -11,24 +10,30 @@ class GearScoreCommand extends BaseCommand {
             'Displays the GearScore of the player',
             '!gs [player_name] [realm?]'
         );
+        this.logger = Logger;
     }
 
     async execute(msg, args) {
         const name = args[1];
-        const realm = args[2] !== undefined ? GetCamelToe(args[2]) : RealmEnum[0];
+        const realm = args[2];
+        const logContext = { name, realm };
 
         try {
-            const character = await CharacterManager.GetCharacter(realm, name);
+            const character = await CharacterService.getCharacterDetails(realm, name);
             await msg.reply(`${character.name}'s gear score is: ${character.GearScore}`);
+            
+            this.logger.info('GearScore command executed successfully', logContext);
         } catch (error) {
-            await msg.reply(error);
+            this.logger.error('GearScore command failed', {
+                ...logContext,
+                error: error.message
+            });
+            await msg.reply(error.message);
         }
     }
 
     validateArgs(args) {
-        if (args.length < 2 || args.length > 3) return false;
-        if (args[2] && !Object.values(RealmEnum).includes(GetCamelToe(args[2]))) return false;
-        return true;
+        return args.length >= 2 && args.length <= 3;
     }
 }
 
