@@ -312,6 +312,10 @@ async function GetSummary(character) {
 
     character.Summary =
     `
+Do you enjoy using the bot? :wink:
+Feel free to donate some gold/coins to Metalforce (Alliance, Icecrown).
+This helps paying the bills for my dedicated server and developing the bot.
+
 Here is a summary for **${character.name}**:
 **Status**: ${character.online ? "Online :green_circle:" : "Offline :red_circle:"}
 **Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction + " " + (character.faction === "Alliance" ? ":blue_heart:" : ":heart:")}
