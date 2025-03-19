@@ -24,16 +24,16 @@ const Help =
             **!ench [player_name] [realm?]**: Displays which enchants are missing from the player's currently equipped items.
             **!gems [player_name] [realm?]**: Displays which gems are missing from the player's currently equipped items.
             **!armory [player_name] [realm?]**: Returns a link to the player's armory.
-            **!summary [player_name] [realm?]**: Lists all the details regarding the given player.
+            **!sum [player_name] [realm?]**: Lists all the details regarding the given player.
             **!achievements or !achi [player_name] [realm?]**: Displays a table with the achievement progress of the player.
             
             **[realm?]** is an optional parameter. By default = Icecrown.
             
 **Example of usage**:
-            !summary Metalforce Icecrown
+            !sum Metalforce Icecrown
             !guild Metalforce
             !gs Metalforce
-            !summary Koch Lordaeron
+            !sum Koch Lordaeron
             !gs Koch Lordaeron
             !achievements Metalforce
             !achi Metalforce
