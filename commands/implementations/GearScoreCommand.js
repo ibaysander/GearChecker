@@ -1,7 +1,7 @@
 const BaseCommand = require('../base/BaseCommand');
 const { Commands } = require('../../common/constants/CommandInfo');
 const CharacterService = require('../../services/character/CharacterService');
-const Logger = require('../../utils/Logger');
+const config = require('../../config');
 
 class GearScoreCommand extends BaseCommand {
     constructor() {
@@ -10,25 +10,21 @@ class GearScoreCommand extends BaseCommand {
             'Displays the GearScore of the player',
             '!gs [player_name] [realm?]'
         );
-        this.logger = Logger;
     }
 
     async execute(msg, args) {
         const name = args[1];
-        const realm = args[2];
-        const logContext = { name, realm };
+        const realm = args[2] || config.warmane.defaultRealm;
 
         try {
             const character = await CharacterService.getCharacterDetails(realm, name);
             await msg.reply(`${character.name}'s gear score is: ${character.GearScore}`);
-            
-            this.logger.info('GearScore command executed successfully', logContext);
         } catch (error) {
-            this.logger.error('GearScore command failed', {
-                ...logContext,
-                error: error.message
-            });
-            await msg.reply(error.message);
+            const errorMessage = error.code === 'CHARACTER_NOT_FOUND'
+                ? `Character ${name} not found in realm ${realm}`
+                : 'An error occurred while fetching character information. Please try again later.';
+                
+            await msg.reply(errorMessage);
         }
     }
 

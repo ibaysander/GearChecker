@@ -10,26 +10,24 @@ const axios = require('axios');
 const { Raids } = require('../common/constants/Achievements');
 
 async function GetCharacter(realm, name) {
-    return new Promise(async (resolve, reject) => {
-        let character = await new Character(GetCamelToe(realm), GetCamelToe(name));
+    try {
+        const character = await Character.create(GetCamelToe(realm), GetCamelToe(name));
+        
+        if (!character.valid) {
+            throw new Error(`Unfortunately, Warmane's API didn't return any information about ${name} from realm ${realm}. Try again, please.`);
+        }
 
-        character.request
-            .then(async _ => {
-                if (character.valid) {
-                    await GetGearScore(character);
-                    await GetEnchants(character);
-                    await GetGems(character);
-                    await GetTalents(character);
-                    await GetSummary(character);
+        await GetGearScore(character);
+        await GetEnchants(character);
+        await GetGems(character);
+        await GetTalents(character);
+        await GetSummary(character);
 
-                    resolve(character);
-                }
-                else reject(`Unfortunately, Warmane's API didn't return any information about ${name} from realm ${realm}. Try again, please.`);
-            })
-            .catch(err => {
-                console.log(err);
-            });
-    })
+        return character;
+    } catch (error) {
+        console.error('Error in GetCharacter:', error);
+        throw error;
+    }
 }
 
 async function GetGearScore(character) {

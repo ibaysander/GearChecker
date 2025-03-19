@@ -16,7 +16,10 @@ class Logger {
     }
 
     static info(message, context = {}) {
-        console.log(this.formatMessage('INFO', message, context));
+        // Info logs are disabled by default
+        if (process.env.ENABLE_INFO_LOGS === 'true') {
+            console.log(this.formatMessage('INFO', message, context));
+        }
     }
 
     static error(message, context = {}) {

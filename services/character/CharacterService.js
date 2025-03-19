@@ -16,6 +16,8 @@ class CharacterService extends BaseService {
         super();
         this.logger = Logger;
         this.httpClient = HttpClient;
+        this.cache = new Map();
+        this.CACHE_TTL = 60000; // 1 minute cache
     }
 
     async validate({ realm, name }) {
@@ -36,13 +38,16 @@ class CharacterService extends BaseService {
     }
 
     async getCharacterDetails(realm, name) {
-        const logContext = { realm, name };
-        this.logger.debug('Fetching character details', logContext);
-
-        const { realm: validRealm, name: validName } = await this.validate({ realm, name });
+        const cacheKey = `${realm}:${name}`;
+        const cachedData = this.cache.get(cacheKey);
         
+        if (cachedData && (Date.now() - cachedData.timestamp) < this.CACHE_TTL) {
+            return cachedData.character;
+        }
+
         try {
-            const character = await new Character(validRealm, validName);
+            const { realm: validRealm, name: validName } = await this.validate({ realm, name });
+            const character = await Character.create(validRealm, validName);
             
             if (!character.valid) {
                 throw new CharacterNotFoundError(validName, validRealm);
@@ -50,15 +55,17 @@ class CharacterService extends BaseService {
 
             await this._enrichCharacterData(character);
             
-            this.logger.info('Character details fetched successfully', {
-                ...logContext,
-                gearScore: character.GearScore
+            // Cache the result
+            this.cache.set(cacheKey, {
+                character,
+                timestamp: Date.now()
             });
 
             return character;
         } catch (error) {
             this.logger.error('Error fetching character details', {
-                ...logContext,
+                realm,
+                name,
                 error: error.message
             });
             throw error;
@@ -76,10 +83,7 @@ class CharacterService extends BaseService {
     }
 
     async _getGearScore(character) {
-        this.logger.debug('Calculating gear score', { character: character.name });
-        
         if (!character?.equipment?.length) {
-            this.logger.warn('No equipment found for character', { character: character.name });
             return;
         }
 
@@ -131,11 +135,6 @@ class CharacterService extends BaseService {
                     resolve();
                 });
             });
-
-            this.logger.info('Gear score calculated successfully', {
-                character: character.name,
-                gearScore: character.GearScore
-            });
         } catch (error) {
             this.logger.error('Error calculating gear score', {
                 character: character.name,
@@ -146,8 +145,6 @@ class CharacterService extends BaseService {
     }
 
     async _getEnchants(character) {
-        this.logger.debug('Checking enchants', { character: character.name });
-        
         const bannedItems = [1, 5, 6, 9, 14, 15];
         let missingEnchants = [];
 
@@ -191,11 +188,6 @@ class CharacterService extends BaseService {
             character.Enchants = missingEnchants.length === 0
                 ? `${character.name} has all enchants! :white_check_mark:`
                 : `${character.name} is missing enchants from: ${missingEnchants.join(', ')} :x:`;
-
-            this.logger.info('Enchants check completed', {
-                character: character.name,
-                missingCount: missingEnchants.length
-            });
         } catch (error) {
             this.logger.error('Error checking enchants', {
                 character: character.name,
@@ -206,8 +198,6 @@ class CharacterService extends BaseService {
     }
 
     async _getGems(character) {
-        this.logger.debug('Checking gems', { character: character.name });
-        
         try {
             const response = await this.httpClient.get(`/character/${character.name}/${character.realm}/`);
             const $ = cheerio.load(response);
@@ -263,11 +253,6 @@ class CharacterService extends BaseService {
                     resolve();
                 });
             });
-
-            this.logger.info('Gems check completed', {
-                character: character.name,
-                missingCount: missingGems.length
-            });
         } catch (error) {
             this.logger.error('Error checking gems', {
                 character: character.name,
@@ -278,8 +263,6 @@ class CharacterService extends BaseService {
     }
 
     async _getTalents(character) {
-        this.logger.debug('Getting talents', { character: character.name });
-        
         let res = '';
 
         if (character.talents?.length) {
@@ -293,23 +276,13 @@ class CharacterService extends BaseService {
         }
 
         character.Talents = res;
-        
-        this.logger.info('Talents retrieved successfully', {
-            character: character.name,
-            talents: res
-        });
     }
 
     async _getSummary(character) {
-        this.logger.debug('Generating summary', { character: character.name });
         // The summary is generated automatically by the Character entity
-        this.logger.info('Summary generated successfully', { character: character.name });
     }
 
     async getAchievements(character) {
-        const logContext = { character: character.name };
-        this.logger.debug('Fetching achievements', logContext);
-
         try {
             const categories = [
                 { name: 'ULDUAR10', categoryId: '14961' },
@@ -321,10 +294,9 @@ class CharacterService extends BaseService {
             ];
 
             // Achievement fetching logic will be implemented here
-            this.logger.info('Achievements fetched successfully', logContext);
         } catch (error) {
             this.logger.error('Error fetching achievements', {
-                ...logContext,
+                character: character.name,
                 error: error.message
             });
             throw error;
