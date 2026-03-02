@@ -1,88 +1,181 @@
-require("dotenv").config();
-const { Client, Intents } = require("discord.js");
-const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
-const crypto = require('crypto');
-const CharacterManager = require('./application/CharacterManager')
-const CI = require('./common/constants/CommandInfo')
-const { RealmEnum } = require('./domain/enums/RealmEnum')
-const { GetCamelToe } = require("./common/helpers/GenericHelper");
+require('dotenv').config();
+
+const { Client, GatewayIntentBits, ActivityType } = require('discord.js');
 const express = require('express');
+const crypto  = require('crypto');
 
-const app = express();
-const port = 2000;
+const CharacterManager = require('./application/CharacterManager');
+const { RealmEnum }    = require('./domain/enums/RealmEnum');
+const { GetCamelToe }  = require('./common/helpers/GenericHelper');
+const logger           = require('./common/helpers/logger');
+const { closeDb, healthCheck } = require('./infrastructure/ItemManager');
+const {
+    buildHelpEmbed,
+    buildGuildEmbed,
+    buildGsEmbed,
+    buildEnchEmbed,
+    buildGemsEmbed,
+    buildArmoryEmbed,
+    buildSummaryEmbed,
+    buildAchievementsEmbed,
+    buildCompareEmbed,
+    buildErrorEmbed
+} = require('./common/helpers/EmbedHelpers');
 
-client.on('ready', () => {
-    console.log(`[${new Date().toLocaleString()}]:> Logged in as: ${client.user.tag}`);
+// ─────────────────────────────────────────────
+// Discord client (v14 — slash commands only, no GUILD_MESSAGES needed)
+// ─────────────────────────────────────────────
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+
+// ─────────────────────────────────────────────
+// Express healthcheck server
+// ─────────────────────────────────────────────
+const expressApp = express();
+const PORT = process.env.PORT || 2000;
+
+expressApp.get('/healthcheck', (req, res) => {
+    healthCheck((dbOk) => {
+        const discordOk = client.isReady();
+        const status = discordOk && dbOk ? 200 : 503;
+        res.status(status).json({
+            status:   status === 200 ? 'ok' : 'degraded',
+            discord:  discordOk ? 'connected' : 'disconnected',
+            database: dbOk     ? 'ok'         : 'error',
+            uptime:   process.uptime()
+        });
+    });
 });
 
-client.on('messageCreate', async(msg) => {
-    let guid = crypto.randomUUID();
+const server = expressApp.listen(PORT, () => {
+    logger.info(`Healthcheck server running on port ${PORT}`);
+});
+
+// ─────────────────────────────────────────────
+// Discord ready
+// ─────────────────────────────────────────────
+client.on('ready', () => {
+    logger.info(`Logged in as: ${client.user.tag}`);
+    client.user.setActivity('/help', { type: ActivityType.Listening });
+});
+
+// ─────────────────────────────────────────────
+// Slash command handler
+// ─────────────────────────────────────────────
+client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
+
+    const { commandName } = interaction;
+    const requestId = crypto.randomUUID();
+
+    logger.info(`[${requestId}] /${commandName} by ${interaction.user.tag} in ${interaction.guild?.name || 'DM'}`);
+
+    // /help — reply immediately (no external calls)
+    if (commandName === 'help') {
+        await interaction.reply({ embeds: [buildHelpEmbed()] });
+        return;
+    }
+
+    // All other commands call external APIs — defer to prevent 3s timeout
+    await interaction.deferReply();
+
+    const realm = interaction.options.getString('realm') || RealmEnum[0];
 
     try {
-        if (msg.content[0] === "!") {
-            console.log(`[${new Date().toLocaleString()}]:> ${msg.content}`);
+        // ── /compare ──────────────────────────────
+        if (commandName === 'compare') {
+            const name1 = GetCamelToe(interaction.options.getString('char1'));
+            const name2 = GetCamelToe(interaction.options.getString('char2'));
 
-            let command = msg.content.split(" ")[0];
-            let name = msg.content.split(" ")[1] !== undefined ? msg.content.split(" ")[1] : null;
-            let realm = msg.content.split(" ")[2] !== undefined ? GetCamelToe(msg.content.split(" ")[2]) : RealmEnum[0];
+            logger.info(`[${requestId}] Comparing ${name1} vs ${name2} on ${realm}`);
+            const { char1, char2 } = await CharacterManager.CompareCharacters(realm, name1, name2);
 
-            msg = await msg.channel.messages.fetch(msg.id);
+            await interaction.editReply({ embeds: [buildCompareEmbed(char1, char2)] });
+            return;
+        }
 
-            if (command === CI.Commands.help) msg.reply(CI.Help);
-            else if (Object.values(CI.Commands).includes(command) && Object.values(RealmEnum).includes(realm) && name != null) {
-                CharacterManager.GetCharacter(realm, name)
-                    .then(async character => {
-                        switch (command) {
-                            case CI.Commands.guild:
-                                msg.reply(
-                                    character.guild ?
-                                        `${character.name}'s guild: ${character.GuildLink}` :
-                                        `${character.name} doesn't have a guild`);
-                                break;
-                            case CI.Commands.gs:
-                                msg.reply(`${character.name}'s gear score is: ${character.GearScore}`);
-                                break;
-                            case CI.Commands.ench:
-                                msg.reply(character.Enchants);
-                                break;
-                            case CI.Commands.gems:
-                                msg.reply(character.Gems);
-                                break;
-                            case CI.Commands.armory:
-                                msg.reply(`${character.name}'s armory: ${character.Armory}`);
-                                break;
-                            case CI.Commands.sum:
-                                msg.reply(character.Summary);
-                                break;
-                            case CI.Commands.achievements:
-                            case CI.Commands.achi:
-                                await CharacterManager.GetAchievements(character).then(async () => {
-                                    msg.reply(`**${character.name}'s achievements**:\n${character.Achievements}`);
-                                });
-                                break;
-                        }
-                    })
-                    .catch(err => {
-                        console.log(err);
+        // ── All single-character commands ─────────
+        const name = GetCamelToe(interaction.options.getString('name'));
+        logger.info(`[${requestId}] Fetching ${name} on ${realm}`);
 
-                        msg.reply(err);
-                    });
+        const character = await CharacterManager.GetCharacter(realm, name);
+
+        switch (commandName) {
+            case 'guild':
+                await interaction.editReply({ embeds: [buildGuildEmbed(character)] });
+                break;
+            case 'gs':
+                await interaction.editReply({ embeds: [buildGsEmbed(character)] });
+                break;
+            case 'ench':
+                await interaction.editReply({ embeds: [buildEnchEmbed(character)] });
+                break;
+            case 'gems':
+                await interaction.editReply({ embeds: [buildGemsEmbed(character)] });
+                break;
+            case 'armory':
+                await interaction.editReply({ embeds: [buildArmoryEmbed(character)] });
+                break;
+            case 'sum':
+                await interaction.editReply({ embeds: [buildSummaryEmbed(character)] });
+                break;
+            case 'achievements':
+                await CharacterManager.GetAchievements(character);
+                await interaction.editReply({ embeds: [buildAchievementsEmbed(character)] });
+                break;
+            default:
+                await interaction.editReply({ embeds: [buildErrorEmbed('Unknown command.')] });
+        }
+
+        logger.info(`[${requestId}] /${commandName} completed for ${name}`);
+
+    } catch (err) {
+        logger.error(`[${requestId}] /${commandName} failed: ${err.message || err}`);
+
+        const message = typeof err === 'string'
+            ? err
+            : err.message || 'An unexpected error occurred. Please try again.';
+
+        try {
+            await interaction.editReply({ embeds: [buildErrorEmbed(message)] });
+        } catch {
+            // editReply may fail if already replied or interaction expired
+            try {
+                await interaction.followUp({ embeds: [buildErrorEmbed(message)], ephemeral: true });
+            } catch {
+                // interaction expired — nothing to do
             }
-            else msg.reply(CI.InvalidCommand);
         }
     }
-    catch (e) {
-        console.log(`[${new Date().toLocaleString()}: ${guid}]:> ${e.message}`);
+});
+
+// ─────────────────────────────────────────────
+// Graceful shutdown
+// ─────────────────────────────────────────────
+async function shutdown(signal) {
+    logger.info(`${signal} received — shutting down gracefully`);
+    try {
+        client.destroy();
+        await closeDb();
+        server.close(() => {
+            logger.info('HTTP server closed');
+            process.exit(0);
+        });
+        // Force-exit if server doesn't close within 5s
+        setTimeout(() => process.exit(0), 5000).unref();
+    } catch (err) {
+        logger.error(`Error during shutdown: ${err.message}`);
+        process.exit(1);
     }
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT',  () => shutdown('SIGINT'));
+
+process.on('unhandledRejection', (reason) => {
+    logger.error(`Unhandled promise rejection: ${reason}`);
 });
 
+// ─────────────────────────────────────────────
+// Start
+// ─────────────────────────────────────────────
 client.login(process.env.discord_bot_id);
-
-app.get('/healthcheck', (req, res) => {
-    res.sendStatus(200); // OK
-});
-
-// Start the express server
-app.listen(port, () => {
-    console.log(`[${new Date().toLocaleString()}]:> Server is running on port: ${port}`);
-});

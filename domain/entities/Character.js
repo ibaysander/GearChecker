@@ -1,42 +1,34 @@
-const request = require("request-promise");
-
 class Character {
-    constructor(realm, charName) {
-        this.request = request(`http://armory.warmane.com/api/character/${charName}/${realm}/`, (err, response, body) => {
-            body = JSON.parse(body);
+    constructor(data) {
+        this.valid = !!(data && data.name);
+        this.name = data.name;
+        this.realm = data.realm;
+        this.online = data.online;
+        this.level = data.level;
+        this.faction = data.faction;
+        this.gender = data.gender;
+        this.class = data.class;
+        this.honorablekills = data.honorablekills;
+        this.guild = data.guild;
+        this.achievementpoints = data.achievementpoints;
+        this.equipment = data.equipment;
+        this.race = data.race;
+        this.talents = data.talents;
+        this.professions = data.professions;
 
-            this.valid = false;
-            this.name = body.name;
-            this.realm = body.realm;
-            this.online = body.online;
-            this.level = body.level;
-            this.faction = body.faction;
-            this.gender = body.gender;
-            this.class = body.class;
-            this.honorablekills = body.honorablekills;
-            this.guild = body.guild;
-            this.achievementpoints = body.achievementpoints;
-            this.equipment = body.equipment;
-            this.race = body.race;
-            this.talents = body.talents;
-            this.professions = body.professions;
-
-            if (body && body.name) this.valid = true;
-
-            // Calculated
-            this.GearScore = 0;
-            this.Enchants = null;
-            this.Gems = null;
-            this.Armory = `[${charName}](http://armory.warmane.com/character/${charName}/${realm})`;
-            this.Talents = null;
-            this.Summary = null;
-            this.GuildLink = this.guild ?
-                `[${this.guild}](http://armory.warmane.com/guild/${this.guild.replaceAll(" ", "+")}/${realm})` :
-                null;
-            this.PVPGear = [];
-            this.Achievements = null;
-        });
+        // Calculated properties (populated by CharacterManager)
+        this.GearScore = 0;
+        this.Enchants = null;
+        this.Gems = null;
+        this.Armory = `[${this.name}](http://armory.warmane.com/character/${this.name}/${this.realm})`;
+        this.Talents = null;
+        this.Summary = null;
+        this.GuildLink = this.guild
+            ? `[${this.guild}](http://armory.warmane.com/guild/${this.guild.replaceAll(' ', '+')}/${this.realm})`
+            : null;
+        this.PVPGear = [];
+        this.Achievements = null;
     }
 }
 
-module.exports = { Character }
+module.exports = { Character };

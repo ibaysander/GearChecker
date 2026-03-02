@@ -1,332 +1,335 @@
-const cheerio = require("cheerio");
-const request = require("request-promise");
-const { GetItems } = require('../infrastructure/ItemManager')
-const { Character } = require('../domain/entities/Character')
-const { ItemTypeEnum, ItemTypeEnumToString } = require('../domain/enums/ItemTypeEnum')
-const { WarmaneItemTypeEnum } = require('../domain/enums/WarmaneItemTypeEnum')
-const { GetCamelToe, GetParams } = require('../common/helpers/GenericHelper')
-
-const axios = require('axios');
+const cheerio = require('cheerio');
+const { fetchCharacterData, fetchArmoryPage, fetchAchievements, sleep } = require('../infrastructure/ArmoryClient');
+const { GetItems } = require('../infrastructure/ItemManager');
+const { Character } = require('../domain/entities/Character');
+const { ItemTypeEnum, ItemTypeEnumToString } = require('../domain/enums/ItemTypeEnum');
+const { WarmaneItemTypeEnum } = require('../domain/enums/WarmaneItemTypeEnum');
+const { GetCamelToe, GetParams } = require('../common/helpers/GenericHelper');
 const { Raids } = require('../common/constants/Achievements');
+const logger = require('../common/helpers/logger');
 
+// ─────────────────────────────────────────────
+// GetCharacter — fetches and populates a full Character object
+// Fix 2c: armory HTML fetched once, shared by GetEnchants + GetGems
+// Fix 2d: properly throws on network error (no more hanging promise)
+// Fix 4c: HTTP fetching moved to ArmoryClient; Character constructor is now synchronous
+// ─────────────────────────────────────────────
 async function GetCharacter(realm, name) {
-    return new Promise(async (resolve, reject) => {
-        let character = await new Character(GetCamelToe(realm), GetCamelToe(name));
+    const normalName  = GetCamelToe(name);
+    const normalRealm = GetCamelToe(realm);
 
-        character.request
-            .then(async _ => {
-                if (character.valid) {
-                    await GetGearScore(character);
-                    await GetEnchants(character);
-                    await GetGems(character);
-                    await GetTalents(character);
-                    await GetSummary(character);
+    const data = await fetchCharacterData(normalName, normalRealm);
 
-                    resolve(character);
-                }
-                else reject(`Unfortunately, Warmane's API didn't return any information about ${name} from realm ${realm}. Try again, please.`);
-            })
-            .catch(err => {
-                console.log(err);
-            });
-    })
-}
-
-async function GetGearScore(character) {
-    let gearScore = 0;
-
-    if (character && character.equipment && character.equipment.length > 0) {
-        return new Promise((resolve) => {
-            let equippedItems = [];
-
-            character.equipment.forEach(item => {
-                equippedItems.push(Number(item.item));
-            });
-
-            GetItems(equippedItems, (err, itemsDB) => {
-                if (err) {
-                    console.log("Error:", err);
-                    return;
-                }
-
-                const hunterWeaponTypes =
-                    [
-                        ItemTypeEnum["OneHand"],
-                        ItemTypeEnum["TwoHand"],
-                        ItemTypeEnum["MainHand"],
-                        ItemTypeEnum["OffHand"]
-                    ];
-                let weapons = [];
-
-                equippedItems.forEach(equippedItem => {
-                    const item = itemsDB.find(element => element.itemID === equippedItem);
-
-                    if (item.PVP === 1) {
-                        character.PVPGear.push(ItemTypeEnumToString(item.type) + ":\n\t\t\t\t\t" + item.name);
-                    }
-
-                    if (character.class === "Hunter" && item.type === 26) {
-                        gearScore += item.GearScore * 5.3224;
-                    } else if (character.class === "Hunter" && hunterWeaponTypes.indexOf(item.type) > -1) {
-                        gearScore += item.GearScore * 0.3164;
-                    } else if (item.class === 2 && (item.subclass === 1 || item.subclass === 5 || item.subclass === 8)) {
-                        weapons.push(item.GearScore);
-                    } else {
-                        gearScore += item.GearScore;
-                    }
-                });
-
-                // Probably a warrior with Titan's Grip
-                if (weapons.length === 2) {
-                    gearScore += Math.floor(((weapons[0] + weapons[1]) / 2));
-                } else if (weapons.length === 1) {
-                    gearScore += weapons[0];
-                }
-                character.GearScore = Math.ceil(gearScore);
-
-                resolve(character);
-            });
-        });
+    if (data && data.error) {
+        throw new Error(
+            `Warmane API error for **${name}**: ${data.error}. Please try again in a moment.`
+        );
     }
+
+    if (!data || !data.name) {
+        throw new Error(
+            `Warmane's API returned no data for **${name}** on **${realm}**. ` +
+            `The character may not exist or the armory is temporarily unavailable.`
+        );
+    }
+
+    const character = new Character(data);
+
+    await GetGearScore(character);
+
+    // Fix 2c: single HTTP request shared by both enchant and gem checks
+    const $ = await fetchArmoryPage(character.name, character.realm);
+    await Promise.all([
+        GetEnchants(character, $),
+        GetGems(character, $)
+    ]);
+
+    await GetTalents(character);
+    await GetSummary(character);
+
+    return character;
 }
 
-async function GetGems(character) {
-    const options = {
-        uri: `http://armory.warmane.com/character/${character.name}/${character.realm}/`,
-        transform: function (body) {
-            return cheerio.load(body);
-        }
-    };
+// ─────────────────────────────────────────────
+// CompareCharacters — fetches two characters sequentially with a pause
+// Sequential + pause to respect Warmane's rate limit between API calls.
+// ArmoryClient will also auto-retry with backoff if rate-limited.
+// ─────────────────────────────────────────────
+async function CompareCharacters(realm, name1, name2) {
+    const char1 = await GetCharacter(realm, name1);
+    // Pause between requests to let Warmane's rate limit window expire
+    await sleep(2000);
+    const char2 = await GetCharacter(realm, name2);
+    return { char1, char2 };
+}
+
+// ─────────────────────────────────────────────
+// GetGearScore
+// ─────────────────────────────────────────────
+async function GetGearScore(character) {
+    if (!character || !character.equipment || character.equipment.length === 0) return;
 
     return new Promise((resolve, reject) => {
-        let equippedItems = [];
-        let actualItems = [];
-        let i = 0;
-        let missingGems = [];
+        const equippedItems = character.equipment.map(item => Number(item.item));
 
-        request(options)
-            .then(($) => {
-                $(".item-model a").each(function () {
-                    let amount = 0;
-                    let rel = $(this).attr("rel");
+        GetItems(equippedItems, (err, itemsDB) => {
+            if (err) {
+                logger.error(`GetGearScore DB error: ${err.message}`);
+                reject(err);
+                return;
+            }
 
-                    if (rel) {
-                        var params = GetParams(rel);
+            const hunterWeaponTypes = [
+                ItemTypeEnum['OneHand'],
+                ItemTypeEnum['TwoHand'],
+                ItemTypeEnum['MainHand'],
+                ItemTypeEnum['OffHand']
+            ];
 
-                        if (params["gems"]) amount = params["gems"].split(":").filter(x => x != 0).length;
+            let gearScore = 0;
+            let weapons = [];
 
-                        equippedItems.push(Number(params["item"]));
+            for (const equippedItemId of equippedItems) {
+                const item = itemsDB.find(el => el.itemID === equippedItemId);
+                if (!item) continue;
 
-                        actualItems.push({
-                            "itemID": Number(params["item"]),
-                            "gems": amount,
-                            "type": WarmaneItemTypeEnum[i]
-                        });
-                    }
+                if (item.PVP === 1) {
+                    character.PVPGear.push(`${ItemTypeEnumToString(item.type)}: ${item.name}`);
+                }
 
-                    i++;
-                })
-
-                GetItems(equippedItems, (err, itemsDB) => {
-                    if (err) {
-                        console.log("Error:", err);
-                        return;
-                    }
-
-                    itemsDB.forEach(item => {
-                        let foundItem = actualItems.filter(x => x.itemID === item.itemID)[0];
-                        let hasBlacksmithing = character && character.professions && character.professions.length > 0 ?
-                            character.professions.map(prof => prof.name).includes("Blacksmithing") :
-                            false;
-                        let itsGlovesOrBracer = (foundItem.type === "Gloves" || foundItem.type === "Bracer");
-
-                        if (foundItem.type === "Belt" || (itsGlovesOrBracer && hasBlacksmithing)) {
-                            if ((item.gems + 1) !== foundItem.gems) {
-                                missingGems.push(foundItem.type);
-                            }
-                        } else if (item.gems > foundItem.gems) {
-                            missingGems.push(foundItem.type);
-                        }
-
-                    });
-                    if (missingGems.length === 0) character.Gems = `${character.name} has gemmed all his items! :white_check_mark:`;
-                    else character.Gems = `${character.name} needs to gem ${missingGems.join(", ")} :x:`;
-
-                    resolve(character.Gems);
-                });
-            })
-            .catch(err => {
-                console.log(err.message);
-
-                reject(new Error("Couldn't connect to the armory"));
-            });
-    });
-}
-
-async function GetEnchants(character) {
-    const bannedItems = [1, 5, 6, 9, 14, 15];
-    let missingEnchants = [];
-
-    const options = {
-        uri: `http://armory.warmane.com/character/${character.name}/${character.realm}/`,
-        transform: function (body) {
-            return cheerio.load(body);
-        }
-    };
-
-    return new Promise((resolve) => {
-        request(options).then(($) => {
-            let items = [];
-            let characterClass = $(".level-race-class").text().toLowerCase();
-            let professions = [];
-            $(".profskills").find(".text").each(function () {
-                professions.push($(this).clone().children().remove().end().text().trim());
-            });
-            $(".item-model a").each(function () {
-                $(this).attr("href");
-                let rel = $(this).attr("rel");
-                items.push(rel);
-            });
-
-            for (let i = 0; i < items.length; i++) {
-                if (items[i]) {
-                    if (!bannedItems.includes(i)) {
-                        if (items[i].indexOf("ench") === -1) {
-                            if (WarmaneItemTypeEnum[i] === "Ranged") {
-                                if (characterClass.indexOf("hunter") >= 0) {
-                                    missingEnchants.push(WarmaneItemTypeEnum[i]);
-                                }
-                            } else if (WarmaneItemTypeEnum[i] === "Ring #1" || WarmaneItemTypeEnum[i] === "Ring #2") {
-                                if (professions.includes("Enchanting")) {
-                                    missingEnchants.push(WarmaneItemTypeEnum[i]);
-                                }
-                            } else if (WarmaneItemTypeEnum[i] === "Off-hand") {
-                                if (characterClass.indexOf("mage") < 0 && characterClass.indexOf("warlock") < 0 && characterClass.indexOf("druid") < 0 && characterClass.indexOf("priest") < 0) {
-                                    missingEnchants.push(WarmaneItemTypeEnum[i]);
-                                }
-                            } else {
-                                missingEnchants.push(WarmaneItemTypeEnum[i]);
-                            }
-                        }
-                    }
+                if (character.class === 'Hunter' && item.type === 26) {
+                    // Ranged weapon — weighted heavily for hunters
+                    gearScore += item.GearScore * 5.3224;
+                } else if (character.class === 'Hunter' && hunterWeaponTypes.includes(item.type)) {
+                    // Melee weapons deprioritised for hunters
+                    gearScore += item.GearScore * 0.3164;
+                } else if (item.class === 2 && [1, 5, 8].includes(item.subclass)) {
+                    // Two-handed weapons — collect for Titan's Grip averaging
+                    weapons.push(item.GearScore);
+                } else {
+                    gearScore += item.GearScore;
                 }
             }
 
-            if (missingEnchants.length === 0) character.Enchants = `${character.name} has all enchants! :white_check_mark:`;
-            else character.Enchants = `${character.name} is missing enchants from: ${missingEnchants.join(", ")} :x:`;
+            // Warrior with Titan's Grip: average both 2H weapons
+            if (weapons.length === 2) {
+                gearScore += Math.floor((weapons[0] + weapons[1]) / 2);
+            } else if (weapons.length === 1) {
+                gearScore += weapons[0];
+            }
 
-            resolve(character.Enchants);
+            character.GearScore = Math.ceil(gearScore);
+            resolve();
         });
     });
 }
 
-async function GetTalents(character) {
-    let res = "";
+// ─────────────────────────────────────────────
+// GetEnchants
+// Fix 2c: receives pre-loaded $ instead of fetching the page itself
+// ─────────────────────────────────────────────
+async function GetEnchants(character, $) {
+    // Slot indices to skip (shirt=5, tabard=6, trinkets=14/15, ammo=9(map index 1 under banned))
+    const bannedSlots = [1, 5, 6, 9, 14, 15];
+    const missingEnchants = [];
 
-    if (character.talents != null) {
-        for (let i=0; i < character.talents.length; i++) {
-            if (i === 1) res += " and ";
+    const characterClass = ($('.level-race-class').text() || '').toLowerCase();
+    const professions = [];
+    $('.profskills').find('.text').each(function () {
+        professions.push($(this).clone().children().remove().end().text().trim());
+    });
 
-            res += character.talents[i].tree;
+    const items = [];
+    $('.item-model a').each(function () {
+        items.push($(this).attr('rel'));
+    });
 
-            if (character.talents[i].points != null) {
-                res += "(" + character.talents[i].points.map(p => p).join("/") + ")";
+    for (let i = 0; i < items.length; i++) {
+        if (!items[i] || bannedSlots.includes(i)) continue;
+
+        if (items[i].indexOf('ench') === -1) {
+            const slotName = WarmaneItemTypeEnum[i];
+
+            if (slotName === 'Ranged') {
+                if (characterClass.includes('hunter')) missingEnchants.push(slotName);
+            } else if (slotName === 'Ring #1' || slotName === 'Ring #2') {
+                if (professions.includes('Enchanting')) missingEnchants.push(slotName);
+            } else if (slotName === 'Off-hand') {
+                const casterClasses = ['mage', 'warlock', 'druid', 'priest'];
+                if (!casterClasses.some(c => characterClass.includes(c))) {
+                    missingEnchants.push(slotName);
+                }
+            } else {
+                missingEnchants.push(slotName);
             }
         }
     }
 
-    character.Talents = res;
+    character.Enchants = missingEnchants.length === 0
+        ? `${character.name} has all enchants! :white_check_mark:`
+        : `${character.name} is missing enchants from: ${missingEnchants.join(', ')} :x:`;
 }
 
-async function GetAchievements(character) {
-    try {
-        // Define the achievement categories we need to check
-        const categories = [
-            { name: "ULDUAR10", categoryId: "14961" }, // Secrets of Ulduar 10
-            { name: "ULDUAR25", categoryId: "14962" }, // Secrets of Ulduar 25
-            { name: "TOC10", categoryId: "15001" },    // Call of the Crusade 10
-            { name: "TOC25", categoryId: "15002" },    // Call of the Crusade 25
-            { name: "ICC10", categoryId: "15041" },    // Fall of the Lich King 10
-            { name: "ICC25", categoryId: "15042" },    // Fall of the Lich King 25
-            { name: "RS10", categoryId: "14922" }, // Secrets of Ulduar 10
-            { name: "RS25", categoryId: "14923" }, // Secrets of Ulduar 10
-            // Ruby Sanctum might be under Dungeons & Raids (168) or have its own category
-        ];
-        
-        // Results object to store achievement completion status
-        const results = {};
-        
-        // Process each category with API request
-        for (const category of categories) {
-            const response = await axios({
-                method: 'post',
-                url: `https://armory.warmane.com/character/${character.name}/${character.realm}/achievements`,
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                    'Accept-Encoding': 'identity' // Important to prevent compression
-                },
-                data: `category=${category.categoryId}`
-            });
-            
-            // Parse the HTML content returned by the API
-            const htmlContent = response.data.content;
-            const $ = cheerio.load(htmlContent);
-            
-            // Check achievements for this category
-            $('.achievement').each(function() {
-                const achievementId = $(this).attr('id');
-                const hasDate = $(this).find('.date').length > 0;
-                
-                // Map achievement IDs to our keys
-                Object.entries(Raids).forEach(([key, raid]) => {
-                    if (raid.id === achievementId) {
-                        results[key] = hasDate ? '✅' : '❌';
-                    }
+// ─────────────────────────────────────────────
+// GetGems
+// Fix 2c: receives pre-loaded $ instead of fetching the page itself
+// ─────────────────────────────────────────────
+async function GetGems(character, $) {
+    return new Promise((resolve, reject) => {
+        const equippedItems = [];
+        const actualItems = [];
+        const missingGems = [];
+        let i = 0;
+
+        $('.item-model a').each(function () {
+            const rel = $(this).attr('rel');
+            if (rel) {
+                const params = GetParams(rel);
+                const gemCount = params['gems']
+                    ? params['gems'].split(':').filter(x => x !== '0' && x !== 0).length
+                    : 0;
+
+                equippedItems.push(Number(params['item']));
+                actualItems.push({
+                    itemID: Number(params['item']),
+                    gems: gemCount,
+                    type: WarmaneItemTypeEnum[i]
                 });
-            });
-        }
-        
-        // Format the results into the table
-        character.Achievements = formatAchievementResults(results);
-        
-    } catch (error) {
-        console.error("Error fetching achievements:", error);
-        character.Achievements = "Error retrieving achievements. Please try again later.";
-    }
+            }
+            i++;
+        });
+
+        GetItems(equippedItems, (err, itemsDB) => {
+            if (err) {
+                logger.error(`GetGems DB error: ${err.message}`);
+                reject(err);
+                return;
+            }
+
+            const hasBlacksmithing = character.professions
+                ? character.professions.some(p => p.name === 'Blacksmithing')
+                : false;
+
+            for (const item of itemsDB) {
+                const foundItem = actualItems.find(x => x.itemID === item.itemID);
+                if (!foundItem) continue;
+
+                const isBelt = foundItem.type === 'Belt';
+                const isGlovesOrBracer = foundItem.type === 'Gloves' || foundItem.type === 'Bracer';
+
+                if (isBelt || (isGlovesOrBracer && hasBlacksmithing)) {
+                    // Belt buckle / Blacksmithing socket adds +1 to expected
+                    if ((item.gems + 1) !== foundItem.gems) {
+                        missingGems.push(foundItem.type);
+                    }
+                } else if (item.gems > foundItem.gems) {
+                    missingGems.push(foundItem.type);
+                }
+            }
+
+            character.Gems = missingGems.length === 0
+                ? `${character.name} has gemmed all items! :white_check_mark:`
+                : `${character.name} needs to gem: ${missingGems.join(', ')} :x:`;
+
+            resolve();
+        });
+    });
 }
 
-// Format the results into a table
+// ─────────────────────────────────────────────
+// GetTalents
+// ─────────────────────────────────────────────
+async function GetTalents(character) {
+    if (!character.talents) {
+        character.Talents = 'Unknown';
+        return;
+    }
+
+    character.Talents = character.talents
+        .map((t, i) => {
+            const pts = t.points ? `(${t.points.join('/')})` : '';
+            return `${i > 0 ? ' / ' : ''}${t.tree}${pts}`;
+        })
+        .join('');
+}
+
+// ─────────────────────────────────────────────
+// GetAchievements
+// Fix 2b: all 8 category requests fired in parallel via Promise.all
+// Fix 4b: corrected RS10/RS25 category comments
+// ─────────────────────────────────────────────
+async function GetAchievements(character) {
+    const categories = [
+        { categoryId: '14961' }, // Secrets of Ulduar 10
+        { categoryId: '14962' }, // Secrets of Ulduar 25
+        { categoryId: '15001' }, // Call of the Crusade 10
+        { categoryId: '15002' }, // Call of the Crusade 25
+        { categoryId: '15041' }, // Fall of the Lich King 10
+        { categoryId: '15042' }, // Fall of the Lich King 25
+        { categoryId: '14922' }, // Ruby Sanctum 10
+        { categoryId: '14923' }, // Ruby Sanctum 25
+    ];
+
+    const results = {};
+
+    // Fix 2b: parallel requests — all 8 fire simultaneously
+    const htmlChunks = await Promise.all(
+        categories.map(cat => fetchAchievements(character.name, character.realm, cat.categoryId))
+    );
+
+    for (const htmlContent of htmlChunks) {
+        if (!htmlContent) continue;
+        const $ = cheerio.load(htmlContent);
+
+        $('.achievement').each(function () {
+            const achievementId = $(this).attr('id');
+            const hasDate = $(this).find('.date').length > 0;
+
+            for (const [key, raid] of Object.entries(Raids)) {
+                if (raid.id === achievementId) {
+                    results[key] = hasDate ? '✅' : '❌';
+                }
+            }
+        });
+    }
+
+    character.Achievements = formatAchievementResults(results);
+}
+
 function formatAchievementResults(results) {
+    const r = (key) => results[key] || '❌';
     return `\`\`\`fix
 Raid   | 25HC 25NM 10HC 10NM
 ----------------------------
-ICC    |  ${results.ICC25HC || '❌'}   ${results.ICC25 || '❌'}    ${results.ICC10HC || '❌'}   ${results.ICC10 || '❌'}
-RS     |  ${results.RS25HC || '❌'}   ${results.RS25 || '❌'}    ${results.RS10HC || '❌'}   ${results.RS10 || '❌'}
-TOC    |  ${results.TOC25HC || '❌'}   ${results.TOC25 || '❌'}    ${results.TOC10HC || '❌'}   ${results.TOC10 || '❌'}
-ULDUAR |  ${results.ULDUAR25HC || '❌'}   ${results.ULDUAR25 || '❌'}    ${results.ULDUAR10HC || '❌'}   ${results.ULDUAR10 || '❌'}\`\`\``;
+ICC    |  ${r('ICC25HC')}   ${r('ICC25')}    ${r('ICC10HC')}   ${r('ICC10')}
+RS     |  ${r('RS25HC')}   ${r('RS25')}    ${r('RS10HC')}   ${r('RS10')}
+TOC    |  ${r('TOC25HC')}   ${r('TOC25')}    ${r('TOC10HC')}   ${r('TOC10')}
+ULDUAR |  ${r('ULDUAR25HC')}   ${r('ULDUAR25')}    ${r('ULDUAR10HC')}   ${r('ULDUAR10')}\`\`\``;
 }
 
+// ─────────────────────────────────────────────
+// GetSummary — legacy text summary (kept for compatibility)
+// ─────────────────────────────────────────────
 async function GetSummary(character) {
-    const listPattern = "\n\t\t";
-    const pvpGearPattern = listPattern + ":exclamation:";
+    const pvp = character.PVPGear.length === 0
+        ? 'None'
+        : '\n' + character.PVPGear.map(g => `  :exclamation: ${g}`).join('\n');
 
     character.Summary =
-    `
-Here is a summary for **${character.name}**:
-**Status**: ${character.online ? "Online :green_circle:" : "Offline :red_circle:"}
-**Character**: ${"Level " + character.level + " " + character.race + " " + character.class + " - " + character.faction + " " + (character.faction === "Alliance" ? ":blue_heart:" : ":heart:")}
-**Guild**: ${character.guild ? character.GuildLink : `${character.name} doesn't have a guild`}
+`Here is a summary for **${character.name}**:
+**Status**: ${character.online ? 'Online :green_circle:' : 'Offline :red_circle:'}
+**Character**: Level ${character.level} ${character.race} ${character.class} — ${character.faction} ${character.faction === 'Alliance' ? ':blue_heart:' : ':heart:'}
+**Guild**: ${character.guild ? character.GuildLink : `${character.name} has no guild`}
 **Specs**: ${character.Talents}
-**Professions**: ${character.professions ? character.professions.map(profession => (profession.skill + " " + profession.name)).join(" and ") + " :tools:" : "No professions to show"}
+**Professions**: ${character.professions ? character.professions.map(p => `${p.skill} ${p.name}`).join(' and ') + ' :tools:' : 'None'}
 **Achievement points**: ${character.achievementpoints} :trophy:
 **Honorable kills**: ${character.honorablekills} :skull_crossbones:
 **GearScore**: ${character.GearScore}
 **Enchants**: ${character.Enchants}
 **Gems**: ${character.Gems}
 **Armory**: ${character.Armory}
-**PVP items**: ${character.PVPGear.length === 0 ? "None" : pvpGearPattern + character.PVPGear.join(pvpGearPattern)}
-**Achievements**: Type !achievements ${character.name} or !achi ${character.name}
-    `
+**PVP items**: ${pvp}
+**Achievements**: Use /achievements ${character.name} to see raid progress`;
 }
 
-module.exports = { GetCharacter, GetAchievements }
+module.exports = { GetCharacter, GetAchievements, CompareCharacters };
